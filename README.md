@@ -35,6 +35,10 @@ git commit -m "Skriv her hva du endret"
 git push
 ```
 
+### Hvordan hente ut endringer gjort av andre
+Skriv ```git pull``` for å hente ut endringer i repository, for å oppdatere din lokale kode.
+Git pull er en kombinasjon av ```git fetch og git merge```. Hvis du får en merge konflikt du ikke kan løse, eller hvis du bestemmer deg for å avslutte sammenslåingen, kan du bruke ```git merge --abort``` for å ta grenen tilbake til der den var i før du pulled.
+
 ### Some basic Git commands are:
 ```
 git status
