@@ -4,6 +4,8 @@ Code for the course project in Power System Analysis (TET4205)
 Firstly we are going to make som scripts for the Newton Raphson Method (NRLF).
 The we are going to incorporate DLF, FDLF and CDLF.
 
+## How to navigate code
+## How to download and run
 
 ### Unngår å commite alle filer, som venv.
 .gitignore sørger for at det som er spesifisert inne i filen ikke blir commited
@@ -26,6 +28,13 @@ For å gå inn i venv
 For å gå ut av venv
 ```venv\Scripts\deactivate.bat```
 Disse funksjonene går ut ifra at du bruker terminalen cmd, da de er litt annerledes i Powershell eller de andre.
+
+###
+You dont want to push to main, push to developer branch.
+```
+git checkout branch_name    "Change branch"
+```
+
 
 ### Hvordan pushe til github:
 Skriv i commandline:
