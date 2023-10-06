@@ -69,3 +69,4 @@ git rm -r --cached venv/ -f
 ```
 I command line, venv/ er det du fjerner her, for så å pushe til github på nytt.
 
+
