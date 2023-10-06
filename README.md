@@ -35,6 +35,13 @@ You dont want to push to main, push to developer branch.
 git checkout branch_name    "Change branch"
 ```
 
+### Hvordan installere alle libraries du trenger
+Her vises hvordan du kan installere alle libraries du trenger for dette prosjektet. 
+
+```
+pip install -r requirements.txt
+```
+
 
 ### Hvordan pushe til github:
 Skriv i commandline:
@@ -61,3 +68,4 @@ git push
 git rm -r --cached venv/ -f
 ```
 I command line, venv/ er det du fjerner her, for så å pushe til github på nytt.
+
