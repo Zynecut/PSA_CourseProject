@@ -21,8 +21,7 @@ class DCLF:
         return None
     
 
-# Prøver hardkoding på første element
-#def J11_diag_calc():
+
 
 
     
