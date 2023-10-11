@@ -8,7 +8,8 @@ class Line:
         self.impedance = impedance
         self.half_line_charging_admittance = half_line_charging_admittance
 
-    def build_Line_pq(self) -> pd.DataFrame:
+
+    def build_Line_Y_bus(self) -> pd.DataFrame:
         y_pq = complex(1 / self.impedance)
         Line_pq = pd.DataFrame(np.empty((2, 2), dtype=complex), index=[self.bus_p, self.bus_q], columns=[self.bus_p, self.bus_q])
         Line_pq.loc[self.bus_p, self.bus_p] = complex(y_pq + self.half_line_charging_admittance)
@@ -17,7 +18,9 @@ class Line:
         Line_pq.loc[self.bus_q, self.bus_p] = complex(-y_pq)
         return Line_pq
 
+    def build(self, ):
 
+        pass
 
 class Bus:
     def __init__(self, bus_id, voltage_magnitude, voltage_angle):
