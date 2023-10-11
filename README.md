@@ -7,6 +7,7 @@ The we are going to incorporate DLF, FDLF and CDLF.
 ## How to navigate code
 ## How to download and run
 
+
 ### Unngår å commite alle filer, som venv.
 .gitignore sørger for at det som er spesifisert inne i filen ikke blir commited
 
@@ -29,15 +30,9 @@ For å gå ut av venv
 ```venv\Scripts\deactivate.bat```
 Disse funksjonene går ut ifra at du bruker terminalen cmd, da de er litt annerledes i Powershell eller de andre.
 
-###
-You dont want to push to main, push to developer branch.
-```
-git checkout branch_name    "Change branch"
-```
 
 ### Hvordan installere alle libraries du trenger
 Her vises hvordan du kan installere alle libraries du trenger for dette prosjektet. 
-
 ```
 pip install -r requirements.txt
 ```
@@ -50,10 +45,21 @@ git add .
 git commit -m "Skriv her hva du endret"
 git push
 ```
+Du vil ikke pushe til main branch, men til egen branch. Derfor er det viktig at du sjekker hvilken branch du er i.
+```
+git checkout branch_name    "Change branch"
+```
+
 
 ### Hvordan hente ut endringer gjort av andre
 Skriv ```git pull``` for å hente ut endringer i repository, for å oppdatere din lokale kode.
 Git pull er en kombinasjon av ```git fetch og git merge```. Hvis du får en merge konflikt du ikke kan løse, eller hvis du bestemmer deg for å avslutte sammenslåingen, kan du bruke ```git merge --abort``` for å ta grenen tilbake til der den var i før du pulled.
+
+### Git pull fra en branch i github til lokal branch
+Her vil du altså bytte ut {github_branch} med den branchen du vil hente koden fra. Så bytter du {lokal_branch} med navnet på din lokale branch.
+```
+git pull origin {github_branch}:{lokal_branch}
+``` 
 
 ### Some basic Git commands are:
 ```
