@@ -20,43 +20,46 @@ class Line:
                 f'Y{self.bus_p}{self.bus_p}' : complex(y_pq + self.half_line_charging_admittance),
                 f'Y{self.bus_p}{self.bus_q}' : complex(-y_pq),
                 f'Y{self.bus_q}{self.bus_p}' : complex(-y_pq),
-                f'Y{self.bus_q}{self.bus_q}' : complex(y_pq + self.half_line_charging_admittance)
+                f'Y{self.bus_q}{self.bus_q}' : complex(y_pq + self.half_line_charging_admittance),
+                'From Bus: ' : self.bus_p,
+                'To Bus: ' : self.bus_q
                 }
         return Line_pq
+
 
 class Y_Bus:
     def __init__(self, line_adm):
         self.line_adm = line_adm
 
     def build_YBUS(self, num_buses) -> pd.DataFrame:
+        '''
+            This function will build a YBus for any N-Bus system, taking into account the number of lines going into each bus.
+        '''
         # Initialize an empty Y-Bus matrix with zeros
         Y_bus = pd.DataFrame(0, index=range(1, num_buses + 1), columns=range(1, num_buses + 1), dtype=complex)
 
-
-
-
-
         for i in range(1, num_buses + 1):
-            sum_of_admittances = 0
-            for j in range(num_buses):
-                key1 = f'Y{i}{i}'
-                key2 = f'Y{i}{j+1}'
-                key3 = f'Y{j+1}{i}'
-
-        # Fill in the diagonal elements with sums of admittances going into that specific bus.
-        # for i in range(1, num_buses + 1):
-        #     Y_bus.loc[i, i] = sum(self.line_adm[j][f'Y{i}{i}'] for j in range(num_buses))
-
-        # # Fill in the off-diagonal elements with negative admittances.
-        # for i in range(1, num_buses + 1):
-        #     for j in range(1, num_buses + 1):
-        #         if i != j:
-        #             Y_bus.loc[i, j] = -self.line_adm[i-1][f'Y{i}{j}']
-
-        
+            for j in range(1, num_buses + 1):
+                # Initialize the sum of admittances for the diagonal element (Yii)
+                sum_of_admittances = 0
+                if i == j:
+                    # Calculate the sum of admittances for the diagonal element
+                    for k in range(len(self.line_adm)):
+                        if self.line_adm[k]['From Bus: '] == i or self.line_adm[k]['To Bus: '] == i:
+                            key = f'Y{i}{i}'
+                            if key in self.line_adm[k]:
+                                sum_of_admittances += self.line_adm[k][key]
+                    # Set the diagonal element
+                    Y_bus.loc[i, i] = complex(sum_of_admittances)
+                else:
+                    # Calculate the off-diagonal elements (Yij) if i != j
+                    key = f'Y{i}{j}'
+                    for k in range(len(self.line_adm)):
+                        if key in self.line_adm[k]:
+                            Y_bus.loc[i, j] = self.line_adm[k][key]
         return Y_bus
 
-        
+
 
 class Bus:
     def __init__(self, bus_id, voltage_magnitude, voltage_angle, gen_MW, gen_MVAr, load_MW, load_MVAr):
