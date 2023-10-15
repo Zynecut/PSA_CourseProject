@@ -76,3 +76,62 @@ git rm -r --cached venv/ -f
 I command line, venv/ er det du fjerner her, for så å pushe til github på nytt.
 
 ### Husk å legge til jupityr extension i venv (Vårt environment):
+
+
+##
+To cancel a commit in Git, you can use several methods depending on the situation. Here are some common scenarios and how to cancel commits in each case:
+
+Cancel the Last Commit (Local Only):
+If you want to cancel the most recent commit without affecting the remote repository, you can use the git reset command with the --soft or --mixed option.
+
+To cancel the commit but keep the changes in your working directory, you can use:
+
+css
+Copy code
+```
+git reset --soft HEAD~1
+```
+To cancel the commit and unstage the changes, you can use:
+
+css
+Copy code
+```
+git reset --mixed HEAD~1
+```
+After executing one of these commands, the last commit will be removed, and the changes will be either in your working directory or staged for a new commit.
+
+Cancel a Commit and Discard Changes (Local Only):
+If you want to completely discard both the commit and the changes, you can use the git reset command with the --hard option. Be cautious when using this, as it permanently discards the changes.
+
+css
+Copy code
+```
+git reset --hard HEAD~1
+```
+This will remove the last commit and all changes associated with it.
+
+Cancel a Commit and Create a New One:
+If you want to cancel a commit and create a new one with different changes, you can use git reset to reset the branch and then make new commits with the desired changes.
+
+For example, if you want to cancel the last two commits and start fresh:
+
+css
+Copy code
+```
+git reset --hard HEAD~2
+```
+Cancel a Commit and Push Changes (Remote Repository):
+If you've already pushed the commit to a remote repository and want to cancel it, you should not use git reset as it can lead to issues in a shared environment. Instead, you can create a new commit that undoes the changes made in the commit you want to cancel.
+
+First, use git revert to create a new commit that undoes the changes:
+
+php
+Copy code
+```
+git revert <commit-hash>
+```
+Then, push the new commit to the remote repository to effectively cancel the previous commit.
+
+Remember to replace <commit-hash> with the actual hash of the commit you want to cancel.
+
+It's important to exercise caution when canceling commits, especially in a shared repository, as it can affect others working on the project. Always communicate with your team when making significant changes to the commit history.
