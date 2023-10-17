@@ -1,5 +1,4 @@
-import math
-import cmath
+import math, cmath
 from classes import *
 
 
