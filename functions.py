@@ -1,206 +1,346 @@
 import math, cmath
-from classes import *
+import re
+import csv
 import numpy as np
 
-a = 1
-def J1(PV_and_PQ_buses: list[Bus], P, YBus):
+from classes import *
+
+def ReadCsvFile(file):
+    data = []
+    try:
+        with open(file, 'r') as csv_file:
+            csv_reader = csv.DictReader(csv_file)
+            for row in csv_reader:
+                data.append(row)
+        return data
+    except FileNotFoundError:
+        print(f"File not found: {file}")
+        return None
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return None
+
+def setupLineAdmittanceList(line_dict):
+    x = []
+    impedance = complex(float(line_dict['R[pu]']), float(line_dict['X[pu]']))
+    half_line_charging_admittance = complex(0, float(line_dict['Half Line Charging Admittance']))
+    y_pq = complex(1 / impedance)
+    x.append(int(line_dict['From line']))
+    x.append(int(line_dict['To line']))
+    x.append(complex(y_pq + half_line_charging_admittance)) #y11
+    x.append(complex(-y_pq)) #y12
+    x.append(complex(-y_pq)) #y21
+    x.append(complex(y_pq + half_line_charging_admittance)) #y22
+    return x
+
+def setupBusList(bus_dict, Sbase):
+    bus = Bus(
+            bus_id= int(bus_dict['Bus Code']),
+            voltage_magnitude= float(bus_dict['Assumed bus voltage (pu)']),
+            voltage_angle= float(bus_dict['Angle']),
+            P_specified= (float(bus_dict['Generation (MW)']) - float(bus_dict['Load (MW)']))/Sbase if (bus_dict['Generation (MW)'] or bus_dict['Load (MW)']) != '-' else None,
+            Q_specified= (float(bus_dict['Generation (MVAr)']) - float(bus_dict['Load (MVAr)']))/Sbase if (bus_dict['Generation (MVAr)'] or bus_dict['Load (MVAr)']) != '-' else None
+        )
+    return bus
+
+def BuildYbusMatrix(line_adm,num_buses):
+    Y_bus = np.zeros((num_buses,num_buses), dtype=complex)
+    for i in range(1, num_buses + 1):
+        for j in range(1, num_buses + 1):
+            # Initialize the sum of admittances for the diagonal element (Yii)
+            sum_of_admittances = 0
+            if i == j:
+                # Calculate the sum of admittances for the diagonal element
+                for k in range(len(line_adm)):
+                    if line_adm[k][0] == i or line_adm[k][1] == i:
+                        sum_of_admittances += line_adm[k][2]
+
+                # Set the diagonal element
+                Y_bus[i-1,j-1] = sum_of_admittances
+            else:
+                for k in range(len(line_adm)):
+                    if (line_adm[k][0] == i and line_adm[k][1] == j) or (line_adm[k][0] == j and line_adm[k][1] == i):
+                        Y_bus[i-1][j-1] = line_adm[k][3]
+    return Y_bus
+
+def setupBusType(bus_data):
+    bus_overview = []
+    for i in range(len(bus_data)):
+        try:
+            generation_mw = bus_data[i]['Generation (MW)']
+            load_mw = bus_data[i]['Load (MW)']
+            generation_mvar = bus_data[i]['Generation (MVAr)']
+            load_mvar = bus_data[i]['Load (MVAr)']
+            bus_voltage = bus_data[i]['Assumed bus voltage (pu)']
+        except ValueError:
+            # Handle non-integer values
+            generation_mw = "-"
+            load_mw = "-"
+            generation_mvar = "-"
+            load_mvar = "-"
+            bus_voltage = "-"
+
+        bus_info = {}
+        if generation_mw != "-" and load_mw != "-" and generation_mvar != "-" and load_mvar != "-":
+            bus_info['Bus'] = i+1
+            bus_info['Type'] = 'P' + 'Q'
+            bus_info['Known_1'] = 'P'
+            bus_info['Known_2'] = 'Q'
+            bus_info['Unknown_1'] = 'V'
+            bus_info['Unknown_2'] = 'DIRAQ'
+    
+        elif bus_voltage != "-" and (generation_mw != "-" and load_mw != "-"):
+            bus_info['Bus'] = i+1
+            bus_info['Type'] = 'P' + 'V'
+            bus_info['Known_1'] = 'P'
+            bus_info['Known_2'] = 'V'
+            bus_info['Unknown_1'] = 'Q' 
+            bus_info['Unknown_2'] = 'DIRAQ'
+
+        else:
+            bus_info['Bus'] = i+1
+            bus_info['Type'] = "Slack"
+            bus_info['Known_1'] = 'V'
+            bus_info['Known_2'] = 'DIRAQ'
+            bus_info['Unknown_1'] = 'P'
+            bus_info['Unknown_2'] = 'Q'
+        
+        bus_overview.append(bus_info)
+
+    return bus_overview
+
+def findKnowns(bus_data, Sbase):
+    knownP_dict = {}
+    knownQ_dict = {}
+    j = 0
+    while j < len(bus_data):
+        if bus_data[j]['Load (MW)'] == '-' or bus_data[j]['Generation (MW)'] == '-':
+            j += 1
+            continue
+        # Create dynamic variable names
+        new_name_P = f"P_{j+1}"
+        valueP = float(bus_data[j]['Generation (MW)']) - float(bus_data[j]['Load (MW)'])
+        knownP_dict[new_name_P] = valueP/Sbase
+        j += 1
+        
+    k = 0
+    while k < len(bus_data):
+        if bus_data[k]['Load (MVAr)'] == '-' or bus_data[k]['Generation (MVAr)'] == '-':
+            k += 1
+            continue
+        new_name_Q = f"Q_{k+1}"
+        ValueQ = float(bus_data[k]['Generation (MVAr)']) - float(bus_data[k]['Load (MVAr)'])
+        knownQ_dict[new_name_Q] = ValueQ/Sbase
+        k += 1
+
+    return knownP_dict, knownQ_dict
+
+def findUnknowns(bus_overview, bus_data):
+    guess_data_dict_V = {}
+    guess_data_dict_Diraq = {}
+
+    j = 0
+    while j < len(bus_data):
+        unknown1 = bus_overview[j].get('Unknown_1', '-')
+        if unknown1 == 'V':
+            new_name_unknown_V = f"v_{j+1}"
+            guessV = float(bus_data[j]['Assumed bus voltage (pu)'])
+            guess_data_dict_V[new_name_unknown_V] = guessV
+        j += 1
+
+    k = 0
+    while k < len(bus_data):
+        unknown2 = bus_overview[k].get('Unknown_2', '-')
+        if unknown2 == 'DIRAQ':
+            new_name_unknown_diraq = f"DIRAQ_{k+1}"
+            guessDiraq = float(bus_data[k]['Angle'])
+            guess_data_dict_Diraq[new_name_unknown_diraq] = guessDiraq
+        k += 1
+
+    return guess_data_dict_V, guess_data_dict_Diraq
+
+def extract_number(s):
+    match = re.search(r'\d+', s)
+    if match:
+        return int(match.group())
+    else:
+        return None
+
+def J1(BusList, P, diraq, YBus):
     '''
         Calculate the first jacobian matrix, refering to the power and voltages.
     '''
-    count_P = len(P)
-    count_diraq = 3
-    df_J1 = pd.DataFrame(0, index=range(1, count_P), columns=range(1, count_diraq), dtype=complex)
-    J1_arr = np.zeros(count_P, count_diraq, dtype=complex)
+    # first_key = next(iter(P))
+    # start_num = extract_number(first_key)
+    # second_key = next(iter(diraq))
+    # start_num_diraq = extract_number(second_key)
 
-    for i in range(1, count_P):
-        for j in range(1, count_diraq):
+    count_P = len(P)
+    count_diraq = len(diraq)
+    # df_J1 = pd.DataFrame(0, index=range(1, count_P), columns=range(1, count_diraq), dtype=complex)
+    J1_arr = np.zeros((count_P,count_diraq))
+
+    for i in range(count_P):
+        for j in range(count_diraq):
+            PiDiraqi = 0
             if i != j:  
                 # Off-diagonal elements of J1
-                # Deklarere disse fra bus listen
-                v_i = None
-                v_j = None
-                diraq_i = None
-                diraq_j = None
+                v_i = BusList[i].voltage_magnitude
+                v_j = BusList[j].voltage_magnitude
+                diraq_i = BusList[i].voltage_angle
+                diraq_j = BusList[j].voltage_angle
 
-                Y_ij_polar = cmath.polar(complex(YBus[i][j]))
+                Y_ij_polar = cmath.polar(YBus[i][j])
                 Y_ij = Y_ij_polar[0]
                 theta_ij = Y_ij_polar[1]
-                PiDiraqj = - abs(v_i*v_j*Y_ij)*math.sin(theta_ij + diraq_j - diraq_i)
-                df_J1[i][j] = PiDiraqj
+                J1_arr[i][j] = - abs(v_i*v_j*Y_ij)*math.sin(theta_ij + diraq_j - diraq_i)
             else: 
                 # Diagonal elements of J1
-                v_i = None
-                v_n = None
-                diraq_n = None
-                PiDiraqj = None
-                N = 4 # blir vel count_v som skal inn her egentlig
-                for n in range(1, N):
+                for n in range(count_diraq):
+                    v_i = BusList[i].voltage_magnitude
+                    v_n = BusList[n].voltage_magnitude
+                    diraq_i = BusList[i].voltage_angle
+                    diraq_n = BusList[n].voltage_angle
                     if n != i:
-                        Y_in_polar = cmath.polar(complex(YBus[i][n]))
+                        Y_in_polar = cmath.polar(YBus[i][n])
                         Y_in = Y_in_polar[0]
                         theta_in = Y_in_polar[1]
-                        sumE = abs(v_i*v_n*Y_in)*math.sin(theta_in + diraq_n - diraq_i)
-                        PiDiraqi += sumE
+                        PiDiraqi += abs(v_i*v_n*Y_in)*math.sin(theta_in + diraq_n - diraq_i)
                     else:
                         continue
-                df_J1[i][i] = PiDiraqi
+                J1_arr[i][i] = PiDiraqi
+    return J1_arr
 
-    return df_J1
-
-def J2(PV_and_PQ_buses: list[Bus], YBus):
+def J2(BusList, P, v, YBus):
     '''
         Calculate the second jacobian matrix, refering to the power and voltages.
     '''
-    count_P = 4
-    count_v = 3
-    df_J2 = pd.DataFrame(0, index=range(1, count_P), columns=range(1, count_v), dtype=complex)
+    count_P = len(P)
+    count_v = len(v)
+    # df_J2 = pd.DataFrame(0, index=range(1, count_P), columns=range(1, count_v), dtype=complex)
+    J2_arr = np.zeros((count_P, count_v))
 
-    for i in range(1, count_P):
-        for j in range(1, count_v):
+    for i in range(count_P):
+        for j in range(count_v):
             if i != j:  
                 # Off-diagonal elements of J2
                 # Deklarere disse fra bus listen
-                v_i = None
-                diraq_i = None
-                diraq_j = None
+                v_i = BusList[i].voltage_magnitude
+                diraq_i = BusList[i].voltage_angle
+                diraq_j = BusList[j].voltage_angle
 
-                Y_ij_polar = cmath.polar(complex(YBus[i][j]))
+                Y_ij_polar = cmath.polar(YBus[i][j])
                 Y_ij = Y_ij_polar[0]
                 theta_ij = Y_ij_polar[1]
-                PiVj = abs(v_i*Y_ij)*math.cos(theta_ij + diraq_j - diraq_i)
-                df_J2[i][j] = PiVj
+                J2_arr[i][j] = abs(v_i*Y_ij)*math.cos(theta_ij + diraq_j - diraq_i)
             else: 
                 # Diagonal elements of J2
-                v_i = None
-                v_n = None
-                diraq_n = None
-                G_ii = complex(YBus[i][i]).real()
+                v_i = BusList[i].voltage_magnitude
+                diraq_i = BusList[i].voltage_angle
+                G_ii = complex(YBus[i][i]).real
                 PiVi = 2*abs(v_i)*G_ii
 
-                N = 4 # blir vel count_v som skal inn her egentlig
-                for n in range(1, N):
-                    Y_in_polar = cmath.polar(complex(YBus[i][n]))
+                for n in range(count_v):
+                    v_n = BusList[n].voltage_magnitude
+                    diraq_n = BusList[n].voltage_angle
+
+                    Y_in_polar = cmath.polar(YBus[i][n])
                     Y_in = Y_in_polar[0]
                     theta_in = Y_in_polar[1]
-                    sumE = abs(v_n*Y_in)*math.cos(theta_in + diraq_n - diraq_i)
-                    PiVi += sumE
+                    PiVi += abs(v_n*Y_in)*math.cos(theta_in + diraq_n - diraq_i)
 
-                df_J2[i][i] = PiVi
+                J2_arr[i][i] = PiVi
 
-    return df_J2
+    return J2_arr
 
-def J3(PV_and_PQ_buses: list[Bus], YBus):
+def J3(BusList, Q, diraq, YBus):
     '''
-        Calculate the second jacobian matrix, refering to the power and voltages.
+        Calculate the third jacobian matrix, refering to the reactive power and voltages.
     '''
-    count_Q = 4
-    count_diraq = 3
-    df_J3 = pd.DataFrame(0, index=range(1, count_Q), columns=range(1, count_diraq), dtype=complex)
+    count_Q = len(Q)
+    count_diraq = len(diraq)
+    # df_J3 = pd.DataFrame(0, index=range(1, count_Q), columns=range(1, count_diraq), dtype=complex)
+    J3_arr = np.zeros((count_Q, count_diraq))
 
-    for i in range(1, count_Q):
-        for j in range(1, count_diraq):
+    for i in range(count_Q):
+        for j in range(count_diraq):
             if i != j:  
                 # Off-diagonal elements of J3
-                v_i = None
-                v_j = None
-                diraq_i = None
-                diraq_j = None
-                Y_ij_polar = cmath.polar(complex(YBus[i][j]))
+                v_i = BusList[i].voltage_magnitude
+                v_j = BusList[j].voltage_magnitude
+                diraq_i = BusList[i].voltage_angle
+                diraq_j = BusList[j].voltage_angle
+
+                Y_ij_polar = cmath.polar(YBus[i][j])
                 Y_ij = Y_ij_polar[0]
                 theta_ij = Y_ij_polar[1]
-                QiDiraqj = - abs(v_i*v_j*Y_ij)*math.cos(theta_ij + diraq_j - diraq_i)
-                df_J3[i][j] = QiDiraqj
+                J3_arr[i][j] = - abs(v_i*v_j*Y_ij)*math.cos(theta_ij + diraq_j - diraq_i)
             else: 
                 # Diagonal elements of J3
-                v_i = None
-                v_n = None
-                diraq_n = None
-                QiDiraqi = None
-                N = 4 # blir vel count_v som skal inn her egentlig
-                for n in range(1, N):
+                QiDiraqi = 0
+                for n in range(count_diraq):
+                    v_i = BusList[i].voltage_magnitude
+                    v_n = BusList[n].voltage_magnitude
+                    diraq_i = BusList[i].voltage_angle
+                    diraq_n = BusList[n].voltage_angle
                     if n != i:
-                        Y_in_polar = cmath.polar(complex(YBus[i][n]))
+                        Y_in_polar = cmath.polar(YBus[i][n])
                         Y_in = Y_in_polar[0]
                         theta_in = Y_in_polar[1]
-                        sumE = abs(v_i*v_n*Y_in)*math.cos(theta_in + diraq_n - diraq_i)
-                        QiDiraqi += sumE
+                        QiDiraqi += abs(v_i*v_n*Y_in)*math.cos(theta_in + diraq_n - diraq_i)
                     else:
                         continue
-                df_J3[i][i] = QiDiraqi
+                J3_arr[i][i] = QiDiraqi
+    return J3_arr
 
-    return df_J3
-
-def J4(PV_and_PQ_buses: list[Bus], YBus):
+def J4(BusList, Q, v, YBus):
     '''
         Calculate the second jacobian matrix, refering to the power and voltages.
     '''
-    count_Q = 4
-    count_v = 3
-    df_J4 = pd.DataFrame(0, index=range(1, count_Q), columns=range(1, count_v), dtype=complex)
+    count_Q = len(Q)
+    count_v = len(v)
+    # df_J4 = pd.DataFrame(0, index=range(1, count_Q), columns=range(1, count_v), dtype=complex)
+    J4_arr = np.zeros((count_Q, count_v))
 
-    for i in range(1, count_Q):
-        for j in range(1, count_v):
+    for i in range(count_Q):
+        for j in range(count_v):
             if i != j:  
                 # Off-diagonal elements of J4
-                v_i = None
-                diraq_i = None
-                diraq_j = None
-                Y_ij_polar = cmath.polar(complex(YBus[i][j]))
+                v_i = BusList[i].voltage_magnitude
+                diraq_i = BusList[i].voltage_angle
+                diraq_j = BusList[j].voltage_angle
+
+                Y_ij_polar = cmath.polar(YBus[i][j])
                 Y_ij = Y_ij_polar[0]
                 theta_ij = Y_ij_polar[1]
-                QiVj = abs(v_i*Y_ij)*math.cos(theta_ij + diraq_j - diraq_i)
-                df_J4[i][j] = QiVj
+                J4_arr[i][j] = abs(v_i*Y_ij)*math.cos(theta_ij + diraq_j - diraq_i)
             else: 
                 # Diagonal elements of J4
-                v_i = None
-                v_n = None
-                diraq_n = None
-                B_ii = complex(YBus[i][i]).imag()
+                v_i = BusList[i].voltage_magnitude
+                diraq_i = BusList[i].voltage_angle
+                B_ii = complex(YBus[i][i]).imag
                 QiVi = 2*abs(v_i)*B_ii
 
-                N = 4 # blir vel count_v som skal inn her egentlig
-                for n in range(1, N):
-                    Y_in_polar = cmath.polar(complex(YBus[i][n]))
+                for n in range(count_v):
+                    v_n = BusList[n].voltage_magnitude
+                    diraq_n = BusList[n].voltage_angle
+
+                    Y_in_polar = cmath.polar(YBus[i][n])
                     Y_in = Y_in_polar[0]
                     theta_in = Y_in_polar[1]
-                    sumE = abs(v_n*Y_in)*math.cos(theta_in + diraq_n - diraq_i)
-                    QiVi += sumE
+                    QiVi += abs(v_n*Y_in)*math.cos(theta_in + diraq_n - diraq_i)
+                J4_arr[i][i] = QiVi
+    return J4_arr
 
-                df_J4[i][i] = QiVi
-
-    return df_J4
-
-def Jacobian(J1, J2, J3, J4):
-    df_jacobian = pd.DataFrame()
-    J1J2 = pd.concat(J1, J2, axis=0)
-    J3J4 = pd.concat(J3, J4, axis=0)
-    df_jacobian = pd.concat(J1J2, J3J4, axis=1)
-    return df_jacobian
-
-
-
-class NewtonRaphsonLF:
-    def funcPi(v_i, v_j, y_ij, theta_ij, delta_i, delta_j):
-        P = abs(v_i*v_j*y_ij)*math.sin(theta_ij + delta_j - delta_i)
-        return P
+def Jacobian(BusList, P, Q, v, diraq, YBus):
+    Jac1 = J1(BusList, P, diraq, YBus)
+    Jac2 = J2(BusList, P, v, YBus)
+    Jac3 = J3(BusList, Q, diraq, YBus)
+    Jac4 = J4(BusList, Q, v, YBus)
+    J1J2 = np.hstack((Jac1, Jac2))
+    J3J4 = np.hstack((Jac3, Jac4))
+    Jac_arr = np.vstack((J1J2, J3J4))
+    return Jac_arr
+  
 
 
-class DecouplingLF:
-    def funcP():
-        return None
-    
-
-class FastDecouplingLF:
-    def funcPyay():
-        return None
-    
-
-class DCLF:
-    def funcPDC():
-        return None
-    
-
-
-
-
-    
