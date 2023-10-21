@@ -64,16 +64,12 @@ class Y_Bus:
 
 
 class Bus:
-    def __init__(self, bus_id, voltage_magnitude, voltage_angle, gen_MW, gen_MVAr, load_MW, load_MVAr):
+    def __init__(self, bus_id, voltage_magnitude, voltage_angle, realP, reaqQ):
         self.bus_id = bus_id
         self.voltage_magnitude = voltage_magnitude
         self.voltage_angle = voltage_angle
-        self.gen_MW = gen_MW
-        self.gen_MVAr = gen_MVAr
-        self.load_MW = load_MW
-        self.load_MVAr = load_MVAr
-        self.P = self.gen_MW - self.load_MW
-        self.Q = self.gen_MVAr - self.load_MVAr
+        self.P = realP
+        self.Q = reaqQ
 
 
     def __str__(self) -> str:
