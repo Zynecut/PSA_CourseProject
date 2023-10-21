@@ -149,7 +149,6 @@ def J1(BusList, P, YBus):
             else: 
                 # Diagonal elements of J1
                 v_i = BusList[i]['voltage_magnitude']
-                PiDiraqj = None
                 N = 4 # blir vel count_v som skal inn her egentlig
                 for n in range(1, N):
                     if n != i:
@@ -194,6 +193,7 @@ def main():
     
     Jac1 = J1(BusList, P, YBus)
     a = 1
+    test = None
 
 
 if __name__ == '__main__':

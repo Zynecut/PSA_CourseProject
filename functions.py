@@ -2,7 +2,7 @@ import math, cmath
 from classes import *
 import numpy as np
 
-
+a = 1
 def J1(PV_and_PQ_buses: list[Bus], P, YBus):
     '''
         Calculate the first jacobian matrix, refering to the power and voltages.

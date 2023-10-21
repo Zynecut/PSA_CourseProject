@@ -61,7 +61,7 @@ class Y_Bus:
                             Y_bus.loc[i, j] = self.line_adm[k][key]
         return Y_bus
 
-
+a = 1
 
 class Bus:
     def __init__(self, bus_id, voltage_magnitude, voltage_angle, realP, reaqQ):
