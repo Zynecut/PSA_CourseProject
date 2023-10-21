@@ -2,16 +2,20 @@ import pandas as pd
 import numpy as np
 
 class Line:
-    def __init__(self, bus_p, bus_q, impedance, half_line_charging_admittance, real_power_line_limit):
+    def __init__(self, bus_p, bus_q, impedance, half_line_charging_admittance):
         self.bus_p = bus_p
         self.bus_q = bus_q
         self.impedance = impedance
         self.half_line_charging_admittance = half_line_charging_admittance
-        self.real_power_line_limit = real_power_line_limit
 
 
     def build_Line_Y_bus(self) -> pd.DataFrame:
         y_pq = complex(1 / self.impedance)
+        # Line_pq = pd.DataFrame(np.empty((2, 2), dtype=complex), index=[self.bus_p, self.bus_q], columns=[self.bus_p, self.bus_q])
+        # Line_pq.loc[self.bus_p, self.bus_p] = complex(y_pq + self.half_line_charging_admittance)
+        # Line_pq.loc[self.bus_q, self.bus_q] = complex(y_pq + self.half_line_charging_admittance)
+        # Line_pq.loc[self.bus_p, self.bus_q] = complex(-y_pq)
+        # Line_pq.loc[self.bus_q, self.bus_p] = complex(-y_pq)
         Line_pq = {
                 f'Y{self.bus_p}{self.bus_p}' : complex(y_pq + self.half_line_charging_admittance),
                 f'Y{self.bus_p}{self.bus_q}' : complex(-y_pq),
@@ -21,13 +25,7 @@ class Line:
                 'To Bus: ' : self.bus_q
                 }
         return Line_pq
-    
-    def line_P_Limit(self) -> list:
-        limit = {
-            'Line' : f"{self.bus_p} - {self.bus_q}",
-            'Real Power Line Limit' : self.real_power_line_limit
-        }
-        return limit
+
 
 class Y_Bus:
     def __init__(self, line_adm):
@@ -64,34 +62,22 @@ class Y_Bus:
 
 
 class Bus:
-    def __init__(self, bus_id, voltage_magnitude, voltage_angle, realP, reaqQ):
+    def __init__(self, bus_id, voltage_magnitude, voltage_angle, gen_MW, gen_MVAr, load_MW, load_MVAr):
         self.bus_id = bus_id
         self.voltage_magnitude = voltage_magnitude
         self.voltage_angle = voltage_angle
-        self.P = realP
-        self.Q = reaqQ
+        self.gen_MW = gen_MW
+        self.gen_MVAr = gen_MVAr
+        self.load_MW = load_MW
+        self.load_MVAr = load_MVAr
+        self.power = gen_MW - load_MW
 
 
     def __str__(self) -> str:
         return f"Bus ID: {self.bus_id}, Voltage Magnitude: {self.voltage_magnitude}, Voltage angle: {self.voltage_angle}"
-
-    def buses(self):
-        # voltage, angle, Pi, Qi
-        bus = {
-            'Bus ID' : self.bus_id,
-            f'P_{self.bus_id}' : self.P,
-            f'Q_{self.bus_id}' : self.Q,
-            f'v_{self.bus_id}' : self.voltage_magnitude,
-            f'delta_{self.bus_id}' : self.voltage_angle
-        }
-        return bus
     
     def update_voltage(self, new_voltage_magnitude, new_voltage_angle):
         self.voltage_magnitude = new_voltage_magnitude
         self.voltage_angle = new_voltage_angle
-
-    def PV_and_PQ_buses():
-
-        pass
 
 
