@@ -1,14 +1,16 @@
 import math, cmath
 from classes import *
+import numpy as np
 
 
-def J1(PV_and_PQ_buses: list[Bus], YBus) -> pd.DataFrame:
+def J1(PV_and_PQ_buses: list[Bus], P, YBus):
     '''
         Calculate the first jacobian matrix, refering to the power and voltages.
     '''
-    count_P = 4
+    count_P = len(P)
     count_diraq = 3
     df_J1 = pd.DataFrame(0, index=range(1, count_P), columns=range(1, count_diraq), dtype=complex)
+    J1_arr = np.zeros(count_P, count_diraq, dtype=complex)
 
     for i in range(1, count_P):
         for j in range(1, count_diraq):
@@ -45,7 +47,7 @@ def J1(PV_and_PQ_buses: list[Bus], YBus) -> pd.DataFrame:
 
     return df_J1
 
-def J2(PV_and_PQ_buses: list[Bus], YBus) -> pd.DataFrame:
+def J2(PV_and_PQ_buses: list[Bus], YBus):
     '''
         Calculate the second jacobian matrix, refering to the power and voltages.
     '''
@@ -87,7 +89,7 @@ def J2(PV_and_PQ_buses: list[Bus], YBus) -> pd.DataFrame:
 
     return df_J2
 
-def J3(PV_and_PQ_buses: list[Bus], YBus) -> pd.DataFrame:
+def J3(PV_and_PQ_buses: list[Bus], YBus):
     '''
         Calculate the second jacobian matrix, refering to the power and voltages.
     '''
@@ -128,7 +130,7 @@ def J3(PV_and_PQ_buses: list[Bus], YBus) -> pd.DataFrame:
 
     return df_J3
 
-def J4(PV_and_PQ_buses: list[Bus], YBus) -> pd.DataFrame:
+def J4(PV_and_PQ_buses: list[Bus], YBus):
     '''
         Calculate the second jacobian matrix, refering to the power and voltages.
     '''
@@ -168,7 +170,7 @@ def J4(PV_and_PQ_buses: list[Bus], YBus) -> pd.DataFrame:
 
     return df_J4
 
-def Jacobian(J1, J2, J3, J4) -> pd.DataFrame:
+def Jacobian(J1, J2, J3, J4):
     df_jacobian = pd.DataFrame()
     J1J2 = pd.concat(J1, J2, axis=0)
     J3J4 = pd.concat(J3, J4, axis=0)
