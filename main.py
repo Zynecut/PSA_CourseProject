@@ -1,6 +1,8 @@
 from classes import *
 from functions import *
 import pandas as pd
+import spicy as sp
+import numpy as np
 
 def main():
     line_data = ReadCsvFile('./files/network_configuration_line_data.csv')
@@ -9,27 +11,32 @@ def main():
     Sbase = 100 # MVA
     Ubase = 230 # kV
     num_buses = len(bus_data)
-    line_admittances = []
-    BusList = []
 
-    for element in line_data:
-        line_admittances.append(setupLineAdmittanceList(element))
-
-    YBus = BuildYbusMatrix(line_admittances, num_buses)
-
-    for element in bus_data:
-        BusList.append(setupBusList(element, Sbase))
+    YBus = BuildYbusMatrix(line_data, num_buses)
+    BusList = buildBusList(bus_data, Sbase)
 
     bus_overview = setupBusType(bus_data)
-    P, Q = findKnowns(bus_data, Sbase)
-    v, diraq = findUnknowns(bus_overview, bus_data)
+    P_spec, Q_spec = findKnowns(bus_data, Sbase)
+    v_guess, diraq_guess = findUnknowns(bus_overview, bus_data)
     
-    jacobian_matrix = Jacobian(BusList, P, Q, v, diraq, YBus)
+    jacobian_matrix = Jacobian(BusList, P_spec, Q_spec, v_guess, diraq_guess, YBus)
 
-    df_test = pd.DataFrame(jacobian_matrix)
+    df_jac = pd.DataFrame(jacobian_matrix)
     df_ybus = pd.DataFrame(YBus)
-    print(df_test, df_ybus)
+    print(df_ybus, "\n\n", df_jac)
 
+    deltaP = calcP(BusList, P_spec, YBus, Sbase)
+    deltaQ = calcQ(BusList, Q_spec, YBus, Sbase)
+    knowns = np.concatenate((deltaP, deltaQ), axis= 0)
+
+    # df_inv_jac = pd.DataFrame(np.linalg.pinv(df_jac))
+    # print(df_inv_jac)
+    unknowns = calcDeltaUnknowns(jacobian_matrix, knowns)
+    print(unknowns)
+
+    updateVoltageAndAngleList(unknowns, diraq_guess, v_guess)
+    updateBusList(BusList, diraq_guess, v_guess)
+    b = 1
 
 if __name__ == '__main__':
     main()
