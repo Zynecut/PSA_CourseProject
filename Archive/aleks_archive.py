@@ -334,3 +334,34 @@
 #                         if key in self.line_adm[k]:
 #                             Y_bus.loc[i, j] = self.line_adm[k][key]
 #         return Y_bus
+
+# def Jacobian
+# J1J2 = np.hstack((Jac1, Jac2))
+# J3J4 = np.hstack((Jac3, Jac4))
+# Jac_arr = np.vstack((J1J2, J3J4))
+
+
+# def setupLineAdmittanceList(line_dict):
+#     x = []
+#     impedance = complex(float(line_dict['R[pu]']), float(line_dict['X[pu]']))
+#     half_line_charging_admittance = complex(0, float(line_dict['Half Line Charging Admittance']))
+#     y_pq = complex(1 / impedance)
+#     x.append(int(line_dict['From line']))
+#     x.append(int(line_dict['To line']))
+#     y11 = y_pq + half_line_charging_admittance
+#     y11_round_real = round(y11.real, 6)
+#     y11_round_imag = round(y11.imag, 3)
+#     x.append(complex(y11_round_real, y11_round_imag)) #y11
+#     y12 = - y_pq
+#     y12_round_real = round(y12.real, 6)
+#     y12_round_imag = round(y12.imag, 3)
+#     x.append(complex(y12_round_real, y12_round_imag)) #y12
+#     y21 = - y_pq
+#     y21_round_real = round(y21.real, 6)
+#     y21_round_imag = round(y21.imag, 3)
+#     x.append(complex(y21_round_real, y21_round_imag)) #y21
+#     y22 = y_pq + half_line_charging_admittance
+#     y22_round_real = round(y22.real, 6)
+#     y22_round_imag = round(y22.imag, 3)
+#     x.append(complex(y22_round_real, y22_round_imag)) #y22
+#     return x
