@@ -345,7 +345,7 @@ def J4(BusList, Q, v, YBus):
                 J4_arr[i][i] = QiVi
     return J4_arr
 
-def Jacobian(BusList, P, Q, v, diraq, YBus):
+def buildJacobian(BusList, P, Q, v, diraq, YBus):
     Jac1 = J1(BusList, P, diraq, YBus)
     Jac2 = J2(BusList, P, v, YBus)
     Jac3 = J3(BusList, Q, diraq, YBus)
@@ -354,7 +354,7 @@ def Jacobian(BusList, P, Q, v, diraq, YBus):
     J3J4 = np.concatenate((Jac3, Jac4), axis= 1)
     Jac_arr = np.concatenate((J1J2, J3J4), axis= 0)
     return Jac_arr
-  
+
 def calcP(BusList, P_spec, YBus, Sbase):
     Pi_calc = np.zeros([len(P_spec), 1])
     start_val = len(BusList) - len(P_spec)
@@ -375,7 +375,7 @@ def calcP(BusList, P_spec, YBus, Sbase):
                 continue
         Pi_calc[i-start_val] = Pi
 
-    P_spec_arr = np.array(list(P_spec.values())).reshape(-1, 1)
+    P_spec_arr = np.array(list(P_spec.values())).reshape(-1, 1) #.T
     deltaP = P_spec_arr - Pi_calc/Sbase
     return deltaP
 
@@ -437,3 +437,33 @@ def updateBusList(BusList, diraq_guess, v_guess):
                 BusList[i].update_bus_voltage(new_voltage_angle=diraq_guess[bus_id])
             else:
                 continue
+
+def calcDecoupledJacobian(BusList, P, Q, v, diraq, YBus):
+    Jac1 = J1(BusList, P, diraq, YBus)
+    Jac2 = np.zeros((len(P), len(v)))
+    Jac3 = np.zeros((len(Q), len(diraq)))
+    Jac4 = J4(BusList, Q, v, YBus)
+    J1J2 = np.concatenate((Jac1, Jac2), axis= 1)
+    J3J4 = np.concatenate((Jac3, Jac4), axis= 1)
+    Jac_arr = np.concatenate((J1J2, J3J4), axis= 0)
+    return Jac_arr
+
+def calcDecoupledDiraqVoltage(dlf_jacobian, knowns):
+    jac_inv = np.linalg.pinv(dlf_jacobian)
+    diraq_voltage = np.dot(jac_inv, knowns)
+    return diraq_voltage
+
+def initializeFastDecoupled(YBus):
+    # Removes elements corresponding to SLACK bus
+    removeSlackElementYBus = YBus[1:, 1:]
+
+    # Removes real parts of elements
+    B_sup1 = removeSlackElementYBus.imag
+
+    # Removes elements corresponding to PV buses from B_sup1
+    B_sup2 = B_sup1[1:,1:]
+    return B_sup1, B_sup2
+
+
+
+
