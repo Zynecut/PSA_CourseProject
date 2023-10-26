@@ -6,6 +6,9 @@ import numpy as np
 from classes import *
 
 def ReadCsvFile(file):
+    """
+        Read values from a csv file
+    """
     data = []
     try:
         with open(file, 'r') as csv_file:
@@ -21,6 +24,9 @@ def ReadCsvFile(file):
         return None
 
 def setupLineAdmittanceList(line_dict):
+    """
+        Setup Cutsem's algorithm, with 2x2 ybuses between each line.
+    """
     x = []
     impedance = complex(float(line_dict['R[pu]']), float(line_dict['X[pu]']))
     half_line_charging_admittance = complex(0, float(line_dict['Half Line Charging Admittance']))
@@ -34,6 +40,9 @@ def setupLineAdmittanceList(line_dict):
     return x
 
 def setupBusList(bus_dict, Sbase):
+    """
+        Setup values for each bus object
+    """
     bus = Bus(
             bus_id= int(bus_dict['Bus Code']),
             voltage_magnitude= float(bus_dict['Assumed bus voltage (pu)']),
@@ -44,12 +53,18 @@ def setupBusList(bus_dict, Sbase):
     return bus
 
 def buildBusList(bus_data, Sbase):
+    """
+        Building list of Bus objects
+    """
     BusList = []
     for element in bus_data:
         BusList.append(setupBusList(element, Sbase))
     return BusList
 
 def BuildYbusMatrix(line_data,num_buses):
+    """
+        Construct YBus Matrix for an N-bus system
+    """
     line_adm = []
     for element in line_data:
         line_adm.append(setupLineAdmittanceList(element))
@@ -74,6 +89,9 @@ def BuildYbusMatrix(line_data,num_buses):
     return Y_bus
 
 def setupBusType(bus_data):
+    """
+        An overview of Known and Unknown values for each bus
+    """
     bus_overview = []
     for i in range(len(bus_data)):
         try:
@@ -120,6 +138,9 @@ def setupBusType(bus_data):
     return bus_overview
 
 def findKnowns(bus_data, Sbase):
+    """
+        Find known values of P_specified and Q_specified
+    """
     knownP_dict = {}
     knownQ_dict = {}
     j = 0
@@ -146,6 +167,9 @@ def findKnowns(bus_data, Sbase):
     return knownP_dict, knownQ_dict
 
 def findUnknowns(bus_overview, bus_data):
+    """
+        Fin unknown values Δδ and Δ|V|
+    """
     guess_data_dict_V = {}
     guess_data_dict_Diraq = {}
 
@@ -170,6 +194,9 @@ def findUnknowns(bus_overview, bus_data):
     return guess_data_dict_V, guess_data_dict_Diraq
 
 def extract_number(s):
+    """
+        Extract number at end of variable name(str)
+    """
     match = re.search(r'\d+', s)
     if match:
         return int(match.group())
@@ -356,6 +383,9 @@ def buildJacobian(BusList, P, Q, v, diraq, YBus):
     return Jac_arr
 
 def calcP(BusList, P_spec, YBus, Sbase):
+    """
+        Calculate ΔP
+    """
     Pi_calc = np.zeros([len(P_spec), 1])
     start_val = len(BusList) - len(P_spec)
     for i in range(start_val, len(BusList)):
@@ -380,6 +410,9 @@ def calcP(BusList, P_spec, YBus, Sbase):
     return deltaP
 
 def calcQ(BusList, Q_spec, YBus, Sbase):
+    """
+        Calculate ΔQ
+    """
     Qi_calc = np.zeros([len(Q_spec), 1])
     start_val = len(BusList) - len(Q_spec)
     for i in range(start_val, len(BusList)):
@@ -400,16 +433,21 @@ def calcQ(BusList, Q_spec, YBus, Sbase):
         Qi_calc[i-start_val] = Qi
 
     Q_spec_arr = np.array(list(Q_spec.values())).reshape(-1, 1)
-    deltaP = Q_spec_arr - Qi_calc/Sbase
-    return deltaP
+    deltaQ = Q_spec_arr - Qi_calc/Sbase
+    return deltaQ
 
 def calcDeltaUnknowns(jacobian_matrix, knowns):
+    """
+        Calculate Δδ and Δ|V|
+    """
     jac_inv = np.linalg.pinv(jacobian_matrix)
     unknowns = np.dot(jac_inv, knowns)
     return unknowns
 
 def updateVoltageAndAngleList(unknowns, diraq_guess, v_guess):
-    
+    """
+        Update dirac and voltage lists for unknowns.
+    """
     # Update DIRAQ guesses with values from the first four elements of unknowns
     for i in range(len(diraq_guess)):
         diraq_key = f'DIRAQ_{i+2}'  # Assuming it starts with 'DIRAQ_2'
@@ -421,7 +459,9 @@ def updateVoltageAndAngleList(unknowns, diraq_guess, v_guess):
         v_guess[v_key] += unknowns[i + len(diraq_guess)][0]
 
 def updateBusList(BusList, diraq_guess, v_guess):
-    # Update the voltage for the specified buses
+    """
+        Update the |V| and δ for the specified buses
+    """
     for bus_id in v_guess:
         v_num = extract_number(bus_id)
         for i in range(len(BusList)):

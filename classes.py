@@ -18,10 +18,3 @@ class Bus:
             self.voltage_magnitude = new_voltage_magnitude
         if new_voltage_angle is not None:
             self.voltage_angle = new_voltage_angle
-
-    def update_real_reactive_power(self, new_P_specified= None, new_Q_specified= None):
-        if new_P_specified is not None:
-            self.P_specified = new_P_specified
-        if new_Q_specified is not None:
-            self.Q_specified = new_Q_specified
-
