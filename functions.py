@@ -6,6 +6,9 @@ import numpy as np
 from classes import *
 
 def ReadCsvFile(file):
+    """
+        Read values from a csv file
+    """
     data = []
     try:
         with open(file, 'r') as csv_file:
@@ -21,6 +24,9 @@ def ReadCsvFile(file):
         return None
 
 def setupLineAdmittanceList(line_dict):
+    """
+        Setup Cutsem's algorithm, with 2x2 ybuses between each line.
+    """
     x = []
     impedance = complex(float(line_dict['R[pu]']), float(line_dict['X[pu]']))
     half_line_charging_admittance = complex(0, float(line_dict['Half Line Charging Admittance']))
@@ -34,6 +40,9 @@ def setupLineAdmittanceList(line_dict):
     return x
 
 def setupBusList(bus_dict, Sbase):
+    """
+        Setup values for each bus object
+    """
     bus = Bus(
             bus_id= int(bus_dict['Bus Code']),
             voltage_magnitude= float(bus_dict['Assumed bus voltage (pu)']),
@@ -44,12 +53,18 @@ def setupBusList(bus_dict, Sbase):
     return bus
 
 def buildBusList(bus_data, Sbase):
+    """
+        Building list of Bus objects
+    """
     BusList = []
     for element in bus_data:
         BusList.append(setupBusList(element, Sbase))
     return BusList
 
 def BuildYbusMatrix(line_data,num_buses):
+    """
+        Construct YBus Matrix for an N-bus system
+    """
     line_adm = []
     for element in line_data:
         line_adm.append(setupLineAdmittanceList(element))
@@ -74,6 +89,9 @@ def BuildYbusMatrix(line_data,num_buses):
     return Y_bus
 
 def setupBusType(bus_data):
+    """
+        An overview of Known and Unknown values for each bus
+    """
     bus_overview = []
     for i in range(len(bus_data)):
         try:
@@ -97,7 +115,7 @@ def setupBusType(bus_data):
             bus_info['Known_1'] = 'P'
             bus_info['Known_2'] = 'Q'
             bus_info['Unknown_1'] = 'V'
-            bus_info['Unknown_2'] = 'DIRAQ'
+            bus_info['Unknown_2'] = 'DIRAC'
     
         elif bus_voltage != "-" and (generation_mw != "-" and load_mw != "-"):
             bus_info['Bus'] = i+1
@@ -105,13 +123,13 @@ def setupBusType(bus_data):
             bus_info['Known_1'] = 'P'
             bus_info['Known_2'] = 'V'
             bus_info['Unknown_1'] = 'Q' 
-            bus_info['Unknown_2'] = 'DIRAQ'
+            bus_info['Unknown_2'] = 'DIRAC'
 
         else:
             bus_info['Bus'] = i+1
             bus_info['Type'] = "Slack"
             bus_info['Known_1'] = 'V'
-            bus_info['Known_2'] = 'DIRAQ'
+            bus_info['Known_2'] = 'DIRAC'
             bus_info['Unknown_1'] = 'P'
             bus_info['Unknown_2'] = 'Q'
         
@@ -120,6 +138,9 @@ def setupBusType(bus_data):
     return bus_overview
 
 def findKnowns(bus_data, Sbase):
+    """
+        Find known values of P_specified and Q_specified
+    """
     knownP_dict = {}
     knownQ_dict = {}
     j = 0
@@ -146,8 +167,11 @@ def findKnowns(bus_data, Sbase):
     return knownP_dict, knownQ_dict
 
 def findUnknowns(bus_overview, bus_data):
+    """
+        Fin unknown values Δδ and Δ|V|
+    """
     guess_data_dict_V = {}
-    guess_data_dict_Diraq = {}
+    guess_data_dict_Dirac = {}
 
     j = 0
     while j < len(bus_data):
@@ -161,64 +185,63 @@ def findUnknowns(bus_overview, bus_data):
     k = 0
     while k < len(bus_data):
         unknown2 = bus_overview[k].get('Unknown_2', '-')
-        if unknown2 == 'DIRAQ':
-            new_name_unknown_diraq = f"DIRAQ_{k+1}"
-            guessDiraq = float(bus_data[k]['Angle'])
-            guess_data_dict_Diraq[new_name_unknown_diraq] = guessDiraq
+        if unknown2 == 'DIRAC':
+            new_name_unknown_dirac = f"DIRAC_{k+1}"
+            guessDirac = float(bus_data[k]['Angle'])
+            guess_data_dict_Dirac[new_name_unknown_dirac] = guessDirac
         k += 1
 
-    return guess_data_dict_V, guess_data_dict_Diraq
+    return guess_data_dict_V, guess_data_dict_Dirac
 
 def extract_number(s):
+    """
+        Extract number at end of variable name(str)
+    """
     match = re.search(r'\d+', s)
     if match:
         return int(match.group())
     else:
         return None
 
-def J1(BusList, P, diraq, YBus):
+def J1(BusList, P, dirac, YBus):
     '''
         Calculate the first jacobian matrix, refering to the power and voltages.
     '''
-    # first_key = next(iter(P))
-    # start_num = extract_number(first_key)
-    # second_key = next(iter(diraq))
-    # start_num_diraq = extract_number(second_key)
-
     count_P = len(P)
-    count_diraq = len(diraq)
-    # df_J1 = pd.DataFrame(0, index=range(1, count_P), columns=range(1, count_diraq), dtype=complex)
-    J1_arr = np.zeros((count_P,count_diraq))
+    P_start = extract_number(next(iter(P))) - 1
+    count_dirac = len(dirac)
+    dirac_start = extract_number(next(iter(dirac))) - 1
+    J1_arr = np.zeros((count_P,count_dirac))
 
-    for i in range(count_P):
-        for j in range(count_diraq):
-            PiDiraqi = 0
+    for i in range(P_start, count_P + P_start):
+        for j in range(dirac_start, count_dirac + dirac_start):
+            PiDiraci = 0
             if i != j:  
                 # Off-diagonal elements of J1
                 v_i = BusList[i].voltage_magnitude
                 v_j = BusList[j].voltage_magnitude
-                diraq_i = BusList[i].voltage_angle
-                diraq_j = BusList[j].voltage_angle
+                dirac_i = BusList[i].voltage_angle
+                dirac_j = BusList[j].voltage_angle
 
                 Y_ij_polar = cmath.polar(YBus[i][j])
                 Y_ij = Y_ij_polar[0]
                 theta_ij = Y_ij_polar[1]
-                J1_arr[i][j] = - abs(v_i*v_j*Y_ij)*math.sin(theta_ij + diraq_j - diraq_i)
+                J1_arr[i-P_start][j-dirac_start] = - abs(v_i*v_j*Y_ij)*math.sin(theta_ij + dirac_j - dirac_i)
             else: 
                 # Diagonal elements of J1
                 v_i = BusList[i].voltage_magnitude
-                diraq_i = BusList[i].voltage_angle
-                for n in range(count_diraq):
+                dirac_i = BusList[i].voltage_angle
+                for n in range(count_dirac + dirac_start):
                     if n != i:
                         v_n = BusList[n].voltage_magnitude
-                        diraq_n = BusList[n].voltage_angle
+                        dirac_n = BusList[n].voltage_angle
                         Y_in_polar = cmath.polar(YBus[i][n])
                         Y_in = Y_in_polar[0]
                         theta_in = Y_in_polar[1]
-                        PiDiraqi += abs(v_i*v_n*Y_in)*math.sin(theta_in + diraq_n - diraq_i)
+                        PiDiraci += abs(v_i*v_n*Y_in)*math.sin(theta_in + dirac_n - dirac_i)
                     else:
                         continue
-                J1_arr[i][i] = PiDiraqi
+                J1_arr[i-P_start][i-dirac_start] = PiDiraci
     return J1_arr
 
 def J2(BusList, P, v, YBus):
@@ -226,82 +249,84 @@ def J2(BusList, P, v, YBus):
         Calculate the second jacobian matrix, refering to the power and voltages.
     '''
     count_P = len(P)
+    P_start = extract_number(next(iter(P))) - 1
     count_v = len(v)
-    # df_J2 = pd.DataFrame(0, index=range(1, count_P), columns=range(1, count_v), dtype=complex)
+    v_start = extract_number(next(iter(v))) - 1
     J2_arr = np.zeros((count_P, count_v))
 
-    for i in range(count_P):
-        for j in range(count_v):
+    for i in range(P_start, count_P + P_start):
+        for j in range(v_start, count_v + v_start):
             if i != j:  
                 # Off-diagonal elements of J2
                 # Deklarere disse fra bus listen
                 v_i = BusList[i].voltage_magnitude
-                diraq_i = BusList[i].voltage_angle
-                diraq_j = BusList[j].voltage_angle
+                dirac_i = BusList[i].voltage_angle
+                dirac_j = BusList[j].voltage_angle
 
                 Y_ij_polar = cmath.polar(YBus[i][j])
                 Y_ij = Y_ij_polar[0]
                 theta_ij = Y_ij_polar[1]
-                J2_arr[i][j] = abs(v_i*Y_ij)*math.cos(theta_ij + diraq_j - diraq_i)
+                J2_arr[i-P_start][j-v_start] = abs(v_i*Y_ij)*math.cos(theta_ij + dirac_j - dirac_i)
             else: 
                 # Diagonal elements of J2
                 v_i = BusList[i].voltage_magnitude
-                diraq_i = BusList[i].voltage_angle
+                dirac_i = BusList[i].voltage_angle
                 G_ii = complex(YBus[i][i]).real
                 PiVi = 2*abs(v_i)*G_ii
 
-                for n in range(count_v):
+                for n in range(count_v + v_start):
                     v_n = BusList[n].voltage_magnitude
-                    diraq_n = BusList[n].voltage_angle
+                    dirac_n = BusList[n].voltage_angle
                     if n != i:
                         Y_in_polar = cmath.polar(YBus[i][n])
                         Y_in = Y_in_polar[0]
                         theta_in = Y_in_polar[1] # return radian value
-                        PiVi += abs(v_n*Y_in)*math.cos(theta_in + diraq_n - diraq_i)
+                        PiVi += abs(v_n*Y_in)*math.cos(theta_in + dirac_n - dirac_i)
                     else:
                         continue
-                J2_arr[i][i] = PiVi
+                J2_arr[i-P_start][i-v_start] = PiVi
 
     return J2_arr
 
-def J3(BusList, Q, diraq, YBus):
+def J3(BusList, Q, dirac, YBus):
     '''
         Calculate the third jacobian matrix, refering to the reactive power and voltages.
     '''
     count_Q = len(Q)
-    count_diraq = len(diraq)
-    # df_J3 = pd.DataFrame(0, index=range(1, count_Q), columns=range(1, count_diraq), dtype=complex)
-    J3_arr = np.zeros((count_Q, count_diraq))
+    Q_start = extract_number(next(iter(Q))) - 1
+    count_dirac = len(dirac)
+    dirac_start = extract_number(next(iter(dirac))) - 1
+    J3_arr = np.zeros((count_Q, count_dirac))
 
-    for i in range(count_Q):
-        for j in range(count_diraq):
+    for i in range(Q_start, count_Q + Q_start):
+        for j in range(dirac_start, count_dirac + dirac_start):
             if i != j:  
                 # Off-diagonal elements of J3
                 v_i = BusList[i].voltage_magnitude
                 v_j = BusList[j].voltage_magnitude
-                diraq_i = BusList[i].voltage_angle
-                diraq_j = BusList[j].voltage_angle
+                dirac_i = BusList[i].voltage_angle
+                dirac_j = BusList[j].voltage_angle
 
                 Y_ij_polar = cmath.polar(YBus[i][j])
                 Y_ij = Y_ij_polar[0]
                 theta_ij = Y_ij_polar[1]
-                J3_arr[i][j] = - abs(v_i*v_j*Y_ij)*math.cos(theta_ij + diraq_j - diraq_i)
+                J3_arr[i-Q_start][j-dirac_start] = - abs(v_i*v_j*Y_ij)*math.cos(theta_ij + dirac_j - dirac_i)
             else: 
                 # Diagonal elements of J3
-                QiDiraqi = 0
+                QiDiraci = 0
                 v_i = BusList[i].voltage_magnitude
-                diraq_i = BusList[i].voltage_angle
-                for n in range(count_diraq):
+                dirac_i = BusList[i].voltage_angle
+                for n in range(count_dirac + dirac_start):
                     v_n = BusList[n].voltage_magnitude
-                    diraq_n = BusList[n].voltage_angle
+                    dirac_n = BusList[n].voltage_angle
                     if n != i:
                         Y_in_polar = cmath.polar(YBus[i][n])
                         Y_in = Y_in_polar[0]
                         theta_in = Y_in_polar[1]
-                        QiDiraqi += abs(v_i*v_n*Y_in)*math.cos(theta_in + diraq_n - diraq_i)
+                        QiDiraci += abs(v_i*v_n*Y_in)*math.cos(theta_in + dirac_n - dirac_i)
                     else:
                         continue
-                J3_arr[i][i] = QiDiraqi
+                J3_arr[i-Q_start][i-dirac_start] = QiDiraci
     return J3_arr
 
 def J4(BusList, Q, v, YBus):
@@ -309,119 +334,133 @@ def J4(BusList, Q, v, YBus):
         Calculate the second jacobian matrix, refering to the power and voltages.
     '''
     count_Q = len(Q)
+    Q_start = extract_number(next(iter(Q))) - 1
     count_v = len(v)
-    # df_J4 = pd.DataFrame(0, index=range(1, count_Q), columns=range(1, count_v), dtype=complex)
+    v_start = extract_number(next(iter(v))) - 1
     J4_arr = np.zeros((count_Q, count_v))
 
-    for i in range(count_Q):
-        for j in range(count_v):
+    for i in range(Q_start, count_Q + Q_start):
+        for j in range(v_start, count_v + v_start):
             if i != j:  
                 # Off-diagonal elements of J4
                 v_i = BusList[i].voltage_magnitude
-                diraq_i = BusList[i].voltage_angle
-                diraq_j = BusList[j].voltage_angle
+                dirac_i = BusList[i].voltage_angle
+                dirac_j = BusList[j].voltage_angle
 
                 Y_ij_polar = cmath.polar(YBus[i][j])
                 Y_ij = Y_ij_polar[0]
                 theta_ij = Y_ij_polar[1]
-                J4_arr[i][j] = - abs(v_i*Y_ij)*math.sin(theta_ij + diraq_j - diraq_i)
+                J4_arr[i-Q_start][j-v_start] = - abs(v_i*Y_ij)*math.sin(theta_ij + dirac_j - dirac_i)
             else: 
                 # Diagonal elements of J4
                 v_i = BusList[i].voltage_magnitude
-                diraq_i = BusList[i].voltage_angle
+                dirac_i = BusList[i].voltage_angle
                 B_ii = complex(YBus[i][i]).imag
                 QiVi = - 2*abs(v_i)*B_ii
 
-                for n in range(count_v):
+                for n in range(count_v + v_start):
                     v_n = BusList[n].voltage_magnitude
-                    diraq_n = BusList[n].voltage_angle
+                    dirac_n = BusList[n].voltage_angle
                     if n != i:
                         Y_in_polar = cmath.polar(YBus[i][n])
                         Y_in = Y_in_polar[0]
                         theta_in = Y_in_polar[1]
-                        QiVi -= abs(v_n*Y_in)*math.sin(theta_in + diraq_n - diraq_i)
+                        QiVi -= abs(v_n*Y_in)*math.sin(theta_in + dirac_n - dirac_i)
                     else:
                         continue
-                J4_arr[i][i] = QiVi
+                J4_arr[i-Q_start][i-v_start] = QiVi
     return J4_arr
 
-def Jacobian(BusList, P, Q, v, diraq, YBus):
-    Jac1 = J1(BusList, P, diraq, YBus)
+def buildJacobian(BusList, P, Q, v, dirac, YBus):
+    Jac1 = J1(BusList, P, dirac, YBus)
     Jac2 = J2(BusList, P, v, YBus)
-    Jac3 = J3(BusList, Q, diraq, YBus)
+    Jac3 = J3(BusList, Q, dirac, YBus)
     Jac4 = J4(BusList, Q, v, YBus)
     J1J2 = np.concatenate((Jac1, Jac2), axis= 1)
     J3J4 = np.concatenate((Jac3, Jac4), axis= 1)
     Jac_arr = np.concatenate((J1J2, J3J4), axis= 0)
     return Jac_arr
-  
+
 def calcP(BusList, P_spec, YBus, Sbase):
+    """
+        Calculate ΔP
+    """
     Pi_calc = np.zeros([len(P_spec), 1])
     start_val = len(BusList) - len(P_spec)
     for i in range(start_val, len(BusList)):
         v_i = BusList[i].voltage_magnitude
-        diraq_i = BusList[i].voltage_angle
+        dirac_i = BusList[i].voltage_angle
         G_ii = complex(YBus[i][i]).real
         Pi = 2*abs(v_i)**2*G_ii
         for n in range(1, len(BusList)):
             v_n = BusList[n].voltage_magnitude
-            diraq_n = BusList[n].voltage_angle
+            dirac_n = BusList[n].voltage_angle
             if n != i:
                 Y_in_polar = cmath.polar(YBus[i][n])
                 Y_in = Y_in_polar[0]
                 theta_in = Y_in_polar[1]
-                Pi += abs(v_i*v_n*Y_in)*math.cos(theta_in + diraq_n - diraq_i)
+                Pi += abs(v_i*v_n*Y_in)*math.cos(theta_in + dirac_n - dirac_i)
             else:
                 continue
         Pi_calc[i-start_val] = Pi
 
-    P_spec_arr = np.array(list(P_spec.values())).reshape(-1, 1)
+    P_spec_arr = np.array(list(P_spec.values())).reshape(-1, 1) #.T
     deltaP = P_spec_arr - Pi_calc/Sbase
     return deltaP
 
 def calcQ(BusList, Q_spec, YBus, Sbase):
+    """
+        Calculate ΔQ
+    """
     Qi_calc = np.zeros([len(Q_spec), 1])
     start_val = len(BusList) - len(Q_spec)
     for i in range(start_val, len(BusList)):
         v_i = BusList[i].voltage_magnitude
-        diraq_i = BusList[i].voltage_angle
+        dirac_i = BusList[i].voltage_angle
         B_ii = complex(YBus[i][i]).imag
         Qi = -2*abs(v_i)**2*B_ii
         for n in range(1, len(BusList)):
             v_n = BusList[n].voltage_magnitude
-            diraq_n = BusList[n].voltage_angle
+            dirac_n = BusList[n].voltage_angle
             if n != i:
                 Y_in_polar = cmath.polar(YBus[i][n])
                 Y_in = Y_in_polar[0]
                 theta_in = Y_in_polar[1]
-                Qi -= abs(v_i*v_n*Y_in)*math.sin(theta_in + diraq_n - diraq_i)
+                Qi -= abs(v_i*v_n*Y_in)*math.sin(theta_in + dirac_n - dirac_i)
             else:
                 continue
         Qi_calc[i-start_val] = Qi
 
     Q_spec_arr = np.array(list(Q_spec.values())).reshape(-1, 1)
-    deltaP = Q_spec_arr - Qi_calc/Sbase
-    return deltaP
+    deltaQ = Q_spec_arr - (Qi_calc/Sbase)
+    return deltaQ
 
 def calcDeltaUnknowns(jacobian_matrix, knowns):
+    """
+        Calculate Δδ and Δ|V|
+    """
     jac_inv = np.linalg.pinv(jacobian_matrix)
     unknowns = np.dot(jac_inv, knowns)
     return unknowns
 
-def updateVoltageAndAngleList(unknowns, diraq_guess, v_guess):
-    
-    # Update DIRAQ guesses with values from the first four elements of unknowns
-    for i in range(len(diraq_guess)):
-        diraq_key = f'DIRAQ_{i+2}'  # Assuming it starts with 'DIRAQ_2'
-        diraq_guess[diraq_key] += unknowns[i][0]
+def updateVoltageAndAngleList(unknowns, dirac_guess, v_guess):
+    """
+        Update dirac and voltage lists for unknowns.
+    """
+    # Update DIRAC guesses with values from the first four elements of unknowns
+    for i in range(len(dirac_guess)):
+        dirac_key = f'DIRAC_{i+2}'  # Assuming it starts with 'DIRAC_2'
+        dirac_guess[dirac_key] += unknowns[i][0]
 
     # Update v guesses with values from the last three elements of unknowns
     for i in range(len(v_guess)):
         v_key = f'v_{i+3}'  # Assuming it starts with 'v_3'
-        v_guess[v_key] += unknowns[i + len(diraq_guess)][0]
+        v_guess[v_key] += unknowns[i + len(dirac_guess)][0]
 
-def updateBusList(BusList, diraq_guess, v_guess):
-    # Update the voltage for the specified buses
+def updateBusList(BusList, dirac_guess, v_guess):
+    """
+        Update the |V| and δ for the specified buses
+    """
     for bus_id in v_guess:
         v_num = extract_number(bus_id)
         for i in range(len(BusList)):
@@ -430,10 +469,40 @@ def updateBusList(BusList, diraq_guess, v_guess):
             else:
                 continue
 
-    for bus_id in diraq_guess:
-        diraq_num = extract_number(bus_id)
+    for bus_id in dirac_guess:
+        dirac_num = extract_number(bus_id)
         for i in range(len(BusList)):
-            if diraq_num == BusList[i].bus_id:
-                BusList[i].update_bus_voltage(new_voltage_angle=diraq_guess[bus_id])
+            if dirac_num == BusList[i].bus_id:
+                BusList[i].update_bus_voltage(new_voltage_angle=dirac_guess[bus_id])
             else:
                 continue
+
+def calcDecoupledJacobian(BusList, P, Q, v, dirac, YBus):
+    Jac1 = J1(BusList, P, dirac, YBus)
+    Jac2 = np.zeros((len(P), len(v)))
+    Jac3 = np.zeros((len(Q), len(dirac)))
+    Jac4 = J4(BusList, Q, v, YBus)
+    J1J2 = np.concatenate((Jac1, Jac2), axis= 1)
+    J3J4 = np.concatenate((Jac3, Jac4), axis= 1)
+    Jac_arr = np.concatenate((J1J2, J3J4), axis= 0)
+    return Jac_arr
+
+def calcDecoupledDiracVoltage(dlf_jacobian, knowns):
+    jac_inv = np.linalg.pinv(dlf_jacobian)
+    dirac_voltage = np.dot(jac_inv, knowns)
+    return dirac_voltage
+
+def initializeFastDecoupled(YBus):
+    # Removes elements corresponding to SLACK bus
+    removeSlackElementYBus = YBus[1:, 1:]
+
+    # Removes real parts of elements
+    B_sup1 = removeSlackElementYBus.imag
+
+    # Removes elements corresponding to PV buses from B_sup1
+    B_sup2 = B_sup1[1:,1:]
+    return B_sup1, B_sup2
+
+
+
+

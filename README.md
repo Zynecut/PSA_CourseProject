@@ -1,8 +1,10 @@
 # course_project_PSA
 Code for the course project in Power System Analysis (TET4205)
 
-Firstly we are going to make som scripts for the Newton Raphson Method (NRLF).
-The we are going to incorporate DLF, FDLF and CDLF.
+
+### Specify format for excel inputs.
+The code inputs csv files, so make sure to save your data files for bus data and line data as TWO seperate .csv files.
+The reason for csv, is that we try to avoid using the pandas library, as it is annoying to debug when pandas gives you 4 million lines of uselessness in the debugger.
 
 ## How to navigate code
 ## How to download and run

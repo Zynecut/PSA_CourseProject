@@ -18,5 +18,3 @@ class Bus:
             self.voltage_magnitude = new_voltage_magnitude
         if new_voltage_angle is not None:
             self.voltage_angle = new_voltage_angle
-
-

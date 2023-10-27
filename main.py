@@ -1,8 +1,16 @@
 from classes import *
 from functions import *
 import pandas as pd
-import spicy as sp
 import numpy as np
+from NRLF import *
+"""
+    Real power loss PL
+    PL is evidently the total I**2R loss in the transmission lines and transformers of the network. 
+    The induvidual currents in the various transmission lines of the network cannot be calculated until after the
+    voltage magnitude and angle are known at every bus of the system. Therefor PL is initially unknown and it is 
+    not possible to prespecify alle the quantities in the summations of Equations. 
+"""
+
 
 def main():
     line_data = ReadCsvFile('./files/network_configuration_line_data.csv')
@@ -17,9 +25,9 @@ def main():
 
     bus_overview = setupBusType(bus_data)
     P_spec, Q_spec = findKnowns(bus_data, Sbase)
-    v_guess, diraq_guess = findUnknowns(bus_overview, bus_data)
-    
-    jacobian_matrix = Jacobian(BusList, P_spec, Q_spec, v_guess, diraq_guess, YBus)
+    v_guess, dirac_guess = findUnknowns(bus_overview, bus_data)
+
+    jacobian_matrix = buildJacobian(BusList, P_spec, Q_spec, v_guess, dirac_guess, YBus)
 
     df_jac = pd.DataFrame(jacobian_matrix)
     df_ybus = pd.DataFrame(YBus)
@@ -29,14 +37,21 @@ def main():
     deltaQ = calcQ(BusList, Q_spec, YBus, Sbase)
     knowns = np.concatenate((deltaP, deltaQ), axis= 0)
 
-    # df_inv_jac = pd.DataFrame(np.linalg.pinv(df_jac))
+    df_inv_jac = pd.DataFrame(np.linalg.pinv(df_jac))
     # print(df_inv_jac)
     unknowns = calcDeltaUnknowns(jacobian_matrix, knowns)
-    print(unknowns)
+    # print(unknowns)
 
-    updateVoltageAndAngleList(unknowns, diraq_guess, v_guess)
-    updateBusList(BusList, diraq_guess, v_guess)
-    b = 1
+    updateVoltageAndAngleList(unknowns, dirac_guess, v_guess)
+    updateBusList(BusList, dirac_guess, v_guess)
+
+    # NewtonRaphson()
+
+
+
+
+
+
 
 if __name__ == '__main__':
     main()
