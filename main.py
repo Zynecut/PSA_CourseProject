@@ -26,7 +26,7 @@ def main():
     Ubase = 230 # kV
     Zbase = (Ubase**2)/Sbase
     num_buses = len(bus_data)
-
+    breakpoint()
     YBus = BuildYbusMatrix(line_data, num_buses)
     bus_overview = setupBusType(bus_data)
     BusList = buildBusList(bus_data, Sbase, bus_overview)
