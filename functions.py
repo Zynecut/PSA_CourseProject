@@ -468,6 +468,7 @@ def updateVoltageAndAngleList(unknowns, dirac_guess, v_guess):
         v_key = f'v_{i}'
         v_guess[v_key] += unknowns[i-v_start+dirac_count][0]
 
+
 def updateBusList(BusList, dirac_guess, v_guess):
     """
         Update the |V| and δ for the specified buses
@@ -532,6 +533,7 @@ def updateSlackAndPV(BusList, YBus, Sbase):
                 theta_in = Y_in_polar[1]
                 Qi -= abs(v_i*v_n*Y_in)*math.sin(theta_in + dirac_n - dirac_i)
             BusList[i].update_Pi_Qi(Q_spec=Qi, Q_gen= (Sbase*Qi - BusList[i].Q_load))
+
 
 def calcDecoupledJacobian(BusList, P, Q, v, dirac, YBus):
     Jac1 = J1(BusList, P, dirac, YBus)

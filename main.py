@@ -48,6 +48,7 @@ def main():
     # Burde nok bytte navn på knowns til delta_u, og unknowns til delta_x
     # Dette som blir brukt i andre eksempler og lærebok
 
+
     df_jac = pd.DataFrame(jacobian_matrix)
     df_ybus = pd.DataFrame(YBus)
     print(df_ybus, "\n\n", df_jac)
@@ -61,7 +62,7 @@ def main():
         We ougth to represent the solution of the system as shown in Figure 7.7 in the textbook or as shown in main.ipynb
 
     """
-    
+
 
 
 

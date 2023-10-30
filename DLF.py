@@ -11,8 +11,8 @@ Ubase = 230 # kV
 max_iterations = 100
 tolerance = 0.001
 
-
 def iterateDLF(BusList, YBus, P_spec, Q_spec, v_guess, dirac_guess, max_iterations, tolerance):
+
     """
         Iterate the solution until convergance
         delta_u is known values - ΔP, ΔQ
@@ -59,6 +59,7 @@ def DLF():
                                      ) 
     print(k, "\n\n" ,knowns, "\n\n", unknowns, "\n\n")
     updateSlackAndPV(BusList=BusList, YBus=YBus, Sbase=Sbase) # Sjekk Qi på PV bus
+
 
     # Next is to calculate line flows
 
