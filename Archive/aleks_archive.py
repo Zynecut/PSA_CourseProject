@@ -112,42 +112,42 @@
 #         Calculate the first jacobian matrix, refering to the power and voltages.
 #     '''
 #     count_P = len(P)
-#     count_diraq = 3
-#     df_J1 = pd.DataFrame(0, index=range(1, count_P), columns=range(1, count_diraq), dtype=complex)
-#     J1_arr = np.zeros(count_P, count_diraq, dtype=complex)
+#     count_dirac = 3
+#     df_J1 = pd.DataFrame(0, index=range(1, count_P), columns=range(1, count_dirac), dtype=complex)
+#     J1_arr = np.zeros(count_P, count_dirac, dtype=complex)
 
 #     for i in range(1, count_P):
-#         for j in range(1, count_diraq):
+#         for j in range(1, count_dirac):
 #             if i != j:  
 #                 # Off-diagonal elements of J1
 #                 # Deklarere disse fra bus listen
 #                 v_i = None
 #                 v_j = None
-#                 diraq_i = None
-#                 diraq_j = None
+#                 dirac_i = None
+#                 dirac_j = None
 
 #                 Y_ij_polar = cmath.polar(complex(YBus[i][j]))
 #                 Y_ij = Y_ij_polar[0]
 #                 theta_ij = Y_ij_polar[1]
-#                 PiDiraqj = - abs(v_i*v_j*Y_ij)*math.sin(theta_ij + diraq_j - diraq_i)
-#                 df_J1[i][j] = PiDiraqj
+#                 PiDiracj = - abs(v_i*v_j*Y_ij)*math.sin(theta_ij + dirac_j - dirac_i)
+#                 df_J1[i][j] = PiDiracj
 #             else: 
 #                 # Diagonal elements of J1
 #                 v_i = None
 #                 v_n = None
-#                 diraq_n = None
-#                 PiDiraqj = None
+#                 dirac_n = None
+#                 PiDiracj = None
 #                 N = 4 # blir vel count_v som skal inn her egentlig
 #                 for n in range(1, N):
 #                     if n != i:
 #                         Y_in_polar = cmath.polar(complex(YBus[i][n]))
 #                         Y_in = Y_in_polar[0]
 #                         theta_in = Y_in_polar[1]
-#                         sumE = abs(v_i*v_n*Y_in)*math.sin(theta_in + diraq_n - diraq_i)
-#                         PiDiraqi += sumE
+#                         sumE = abs(v_i*v_n*Y_in)*math.sin(theta_in + dirac_n - dirac_i)
+#                         PiDiraci += sumE
 #                     else:
 #                         continue
-#                 df_J1[i][i] = PiDiraqi
+#                 df_J1[i][i] = PiDiraci
 
 #     return df_J1
 
@@ -166,19 +166,19 @@
 #                 # Off-diagonal elements of J2
 #                 # Deklarere disse fra bus listen
 #                 v_i = None
-#                 diraq_i = None
-#                 diraq_j = None
+#                 dirac_i = None
+#                 dirac_j = None
 
 #                 Y_ij_polar = cmath.polar(complex(YBus[i][j]))
 #                 Y_ij = Y_ij_polar[0]
 #                 theta_ij = Y_ij_polar[1]
-#                 PiVj = abs(v_i*Y_ij)*math.cos(theta_ij + diraq_j - diraq_i)
+#                 PiVj = abs(v_i*Y_ij)*math.cos(theta_ij + dirac_j - dirac_i)
 #                 df_J2[i][j] = PiVj
 #             else: 
 #                 # Diagonal elements of J2
 #                 v_i = None
 #                 v_n = None
-#                 diraq_n = None
+#                 dirac_n = None
 #                 G_ii = complex(YBus[i][i]).real()
 #                 PiVi = 2*abs(v_i)*G_ii
 
@@ -187,7 +187,7 @@
 #                     Y_in_polar = cmath.polar(complex(YBus[i][n]))
 #                     Y_in = Y_in_polar[0]
 #                     theta_in = Y_in_polar[1]
-#                     sumE = abs(v_n*Y_in)*math.cos(theta_in + diraq_n - diraq_i)
+#                     sumE = abs(v_n*Y_in)*math.cos(theta_in + dirac_n - dirac_i)
 #                     PiVi += sumE
 
 #                 df_J2[i][i] = PiVi
@@ -200,39 +200,39 @@
 #         Calculate the second jacobian matrix, refering to the power and voltages.
 #     '''
 #     count_Q = 4
-#     count_diraq = 3
-#     df_J3 = pd.DataFrame(0, index=range(1, count_Q), columns=range(1, count_diraq), dtype=complex)
+#     count_dirac = 3
+#     df_J3 = pd.DataFrame(0, index=range(1, count_Q), columns=range(1, count_dirac), dtype=complex)
 
 #     for i in range(1, count_Q):
-#         for j in range(1, count_diraq):
+#         for j in range(1, count_dirac):
 #             if i != j:  
 #                 # Off-diagonal elements of J3
 #                 v_i = None
 #                 v_j = None
-#                 diraq_i = None
-#                 diraq_j = None
+#                 dirac_i = None
+#                 dirac_j = None
 #                 Y_ij_polar = cmath.polar(complex(YBus[i][j]))
 #                 Y_ij = Y_ij_polar[0]
 #                 theta_ij = Y_ij_polar[1]
-#                 QiDiraqj = - abs(v_i*v_j*Y_ij)*math.cos(theta_ij + diraq_j - diraq_i)
-#                 df_J3[i][j] = QiDiraqj
+#                 QiDiracj = - abs(v_i*v_j*Y_ij)*math.cos(theta_ij + dirac_j - dirac_i)
+#                 df_J3[i][j] = QiDiracj
 #             else: 
 #                 # Diagonal elements of J3
 #                 v_i = None
 #                 v_n = None
-#                 diraq_n = None
-#                 QiDiraqi = None
+#                 dirac_n = None
+#                 QiDiraci = None
 #                 N = 4 # blir vel count_v som skal inn her egentlig
 #                 for n in range(1, N):
 #                     if n != i:
 #                         Y_in_polar = cmath.polar(complex(YBus[i][n]))
 #                         Y_in = Y_in_polar[0]
 #                         theta_in = Y_in_polar[1]
-#                         sumE = abs(v_i*v_n*Y_in)*math.cos(theta_in + diraq_n - diraq_i)
-#                         QiDiraqi += sumE
+#                         sumE = abs(v_i*v_n*Y_in)*math.cos(theta_in + dirac_n - dirac_i)
+#                         QiDiraci += sumE
 #                     else:
 #                         continue
-#                 df_J3[i][i] = QiDiraqi
+#                 df_J3[i][i] = QiDiraci
 
 #     return df_J3
 
@@ -249,18 +249,18 @@
 #             if i != j:  
 #                 # Off-diagonal elements of J4
 #                 v_i = None
-#                 diraq_i = None
-#                 diraq_j = None
+#                 dirac_i = None
+#                 dirac_j = None
 #                 Y_ij_polar = cmath.polar(complex(YBus[i][j]))
 #                 Y_ij = Y_ij_polar[0]
 #                 theta_ij = Y_ij_polar[1]
-#                 QiVj = abs(v_i*Y_ij)*math.cos(theta_ij + diraq_j - diraq_i)
+#                 QiVj = abs(v_i*Y_ij)*math.cos(theta_ij + dirac_j - dirac_i)
 #                 df_J4[i][j] = QiVj
 #             else: 
 #                 # Diagonal elements of J4
 #                 v_i = None
 #                 v_n = None
-#                 diraq_n = None
+#                 dirac_n = None
 #                 B_ii = complex(YBus[i][i]).imag()
 #                 QiVi = 2*abs(v_i)*B_ii
 
@@ -269,7 +269,7 @@
 #                     Y_in_polar = cmath.polar(complex(YBus[i][n]))
 #                     Y_in = Y_in_polar[0]
 #                     theta_in = Y_in_polar[1]
-#                     sumE = abs(v_n*Y_in)*math.cos(theta_in + diraq_n - diraq_i)
+#                     sumE = abs(v_n*Y_in)*math.cos(theta_in + dirac_n - dirac_i)
 #                     QiVi += sumE
 
 #                 df_J4[i][i] = QiVi

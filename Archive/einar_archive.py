@@ -107,12 +107,12 @@
 #     df_J2 = pd.DataFrame(0, index=range(1, count_P), columns=range(1, count_v), dtype=complex)
 #     # Off-diagonal variables
 #     v_i = None
-#     diraq_i = None
-#     diraq_j = None
+#     dirac_i = None
+#     dirac_j = None
 
 #     # Diagonal variables
 #     v_n = None
-#     diraq_n = None
+#     dirac_n = None
 
 #     for i in range(1, count_P):
 #         for j in range(1, count_v):
@@ -121,7 +121,7 @@
 #                 Y_ij_polar = cmath.polar(complex(YBus[i][j]))
 #                 Y_ij = Y_ij_polar[0]
 #                 theta_ij = Y_ij_polar[1]
-#                 PiVj = abs(v_iY_ij)math.cos(theta_ij + diraq_j - diraq_i)
+#                 PiVj = abs(v_iY_ij)math.cos(theta_ij + dirac_j - dirac_i)
 #                 df_J2[i][j] = PiVj
 #             else: 
 #                 # Diagonal elements of J2
@@ -133,7 +133,7 @@
 #                     Y_in_polar = cmath.polar(complex(YBus[i][n]))
 #                     Y_in = Y_in_polar[0]
 #                     theta_in = Y_in_polar[1]
-#                     sumE = abs(v_nY_in)math.cos(theta_in + diraq_n - diraq_i)
+#                     sumE = abs(v_nY_in)math.cos(theta_in + dirac_n - dirac_i)
 #                     PiVi += sumE
 
 #                 df_J2[i][i] = PiVi
