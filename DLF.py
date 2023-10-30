@@ -12,7 +12,6 @@ max_iterations = 100
 tolerance = 0.001
 
 def iterateDLF(BusList, YBus, P_spec, Q_spec, v_guess, dirac_guess, max_iterations, tolerance):
-
     """
         Iterate the solution until convergance
         delta_u is known values - ΔP, ΔQ
@@ -42,13 +41,17 @@ def iterateDLF(BusList, YBus, P_spec, Q_spec, v_guess, dirac_guess, max_iteratio
 
 
 def DLF():
+    """
+        delta_u is known values - ΔP, ΔQ
+        delta_x is unknown values - Δδ, Δ|v|
+    """
     num_buses = len(bus_data)
     YBus = BuildYbusMatrix(line_data, num_buses)
     bus_overview = setupBusType(bus_data)
     BusList = buildBusList(bus_data, Sbase, bus_overview)
     P_spec, Q_spec = findKnowns(bus_data, Sbase)
     v_guess, dirac_guess = findUnknowns(bus_overview, bus_data)
-    knowns, unknowns, k = iterateDLF(BusList= BusList, 
+    delta_u, delta_x, k = iterateDLF(BusList= BusList, 
                                      YBus= YBus, 
                                      P_spec= P_spec, 
                                      Q_spec= Q_spec, 
@@ -57,11 +60,9 @@ def DLF():
                                      max_iterations= max_iterations, 
                                      tolerance= tolerance
                                      ) 
-    print(k, "\n\n" ,knowns, "\n\n", unknowns, "\n\n")
+    print(k, "\n\n" ,delta_u, "\n\n", delta_x, "\n\n")
     updateSlackAndPV(BusList=BusList, YBus=YBus, Sbase=Sbase) # Sjekk Qi på PV bus
 
-
-    # Next is to calculate line flows
 
 if __name__ == '__main__':
     DLF()
