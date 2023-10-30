@@ -4,63 +4,64 @@ import pandas as pd
 # standard
 line_data = ReadCsvFile('./files/network_configuration_line_data.csv')
 bus_data = ReadCsvFile('./files/network_configuration_bus_data.csv')
+# line_data = ReadCsvFile('./files/test_line_data.csv')
+# bus_data = ReadCsvFile('./files/test_bus_data.csv')
 Sbase = 100 # MVA
 Ubase = 230 # kV
-max_iterations = 10000
+max_iterations = 100
 tolerance = 0.001
 
+def iterateDLF(BusList, YBus, P_spec, Q_spec, v_guess, dirac_guess, max_iterations, tolerance):
 
-def iterateDLF(BusList, YBus, Sbase, P_spec, Q_spec, v_guess, dirac_guess, max_iterations, tolerance):
     """
         Iterate the solution until convergance
+        delta_u is known values - ΔP, ΔQ
+        delta_x is unknown values - Δδ, Δ|v|
     """
-    deltaP = calcP(BusList, P_spec, YBus, Sbase)
-    deltaQ = calcQ(BusList, Q_spec, YBus, Sbase)
-    knowns = np.concatenate((deltaP, deltaQ), axis= 0)
-    max_valueP = deltaP[0]
-    max_valueQ = deltaQ[0]
+    deltaP = calcP(BusList, P_spec, YBus)
+    deltaQ = calcQ(BusList, Q_spec, YBus)
+    delta_u = np.concatenate((deltaP, deltaQ), axis= 0)
     k = 0
     convergence = False
     while not convergence:
         # Decoupled Load Flow
-
-        for element in deltaP:
-            if abs(element) > max_valueP:
-                max_valueP = element
-
-        for element in deltaQ:
-            if abs(element) > max_valueQ:
-                max_valueQ = element
-
-        if abs(max_valueP) < tolerance or abs(max_valueQ) < tolerance:
+        if checkConvergence(tolerance, delta_u):
             convergence = True
         elif max_iterations < k:
             break
         else:
-            deltaP = calcP(BusList, P_spec, YBus, Sbase)
-            deltaQ = calcQ(BusList, Q_spec, YBus, Sbase)
-            knowns = np.concatenate((deltaP, deltaQ), axis= 0)
+            deltaP = calcP(BusList, P_spec, YBus)
+            deltaQ = calcQ(BusList, Q_spec, YBus)
+            delta_u = np.concatenate((deltaP, deltaQ), axis= 0)
             jacobian = calcDecoupledJacobian(BusList, P_spec, Q_spec, v_guess, dirac_guess, YBus)
-            unknowns= calcDecoupledDiracVoltage(jacobian, knowns)
-            updateVoltageAndAngleList(unknowns, dirac_guess, v_guess)
+            delta_x= calcDecoupledDiracVoltage(jacobian, delta_u)
+            updateVoltageAndAngleList(delta_x, dirac_guess, v_guess)
             updateBusList(BusList, dirac_guess, v_guess)
             k += 1
-
-    return deltaP, deltaQ, knowns, jacobian, unknowns, k
+    return delta_u, delta_x, k
 
 
 def DLF():
     num_buses = len(bus_data)
     YBus = BuildYbusMatrix(line_data, num_buses)
-    BusList = buildBusList(bus_data, Sbase)
     bus_overview = setupBusType(bus_data)
+    BusList = buildBusList(bus_data, Sbase, bus_overview)
     P_spec, Q_spec = findKnowns(bus_data, Sbase)
     v_guess, dirac_guess = findUnknowns(bus_overview, bus_data)
+    knowns, unknowns, k = iterateDLF(BusList= BusList, 
+                                     YBus= YBus, 
+                                     P_spec= P_spec, 
+                                     Q_spec= Q_spec, 
+                                     v_guess= v_guess, 
+                                     dirac_guess= dirac_guess, 
+                                     max_iterations= max_iterations, 
+                                     tolerance= tolerance
+                                     ) 
+    print(k, "\n\n" ,knowns, "\n\n", unknowns, "\n\n")
+    updateSlackAndPV(BusList=BusList, YBus=YBus, Sbase=Sbase) # Sjekk Qi på PV bus
 
-    deltaP, deltaQ, knowns, jacobian, unknowns, k = iterateDLF(BusList, YBus, Sbase, P_spec, Q_spec, v_guess, dirac_guess, max_iterations, tolerance) 
-    print(pd.DataFrame(bus_overview))
-    a = 1
 
+    # Next is to calculate line flows
 
 if __name__ == '__main__':
     DLF()
