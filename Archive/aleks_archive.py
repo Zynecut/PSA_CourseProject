@@ -365,3 +365,42 @@
 #     y22_round_imag = round(y22.imag, 3)
 #     x.append(complex(y22_round_real, y22_round_imag)) #y22
 #     return x
+
+
+# self.P_specified = (float(self.P_gen) - float(self.P_load))/SBase if (self.P_gen or self.P_load) != None else None
+# self.Q_specified = (float(self.Q_gen) - float(self.Q_load))/SBase if (self.Q_gen or self.Q_load) != None else None
+
+# def update_voltage(self, new_voltage_magnitude, new_voltage_angle):
+#     self.voltage_magnitude = new_voltage_magnitude
+#     self.voltage_angle = new_voltage_angle
+
+
+#creating a list of all the P_i equations 
+# def P_power_flow_equations(P_list, Y_bus_polar, buses):
+#     P_eq_vector = []
+
+#     for i in range(len(P_list)):
+#         n=P_list[i][0] #For example, we want n=2 for P2
+#         P_i = 0
+#         for k in range(0,len(buses)):
+#             P_i += buses[n-1].voltage_magnitude * buses[k].voltage_magnitude * Y_bus_polar[n-1][k][0] * sym.cos((((Y_bus_polar[n-1][k][1] - buses[n-1].voltage_angle + buses[k].voltage_angle))))
+#         P_eq_vector.append(P_i)
+#     return P_eq_vector
+
+
+# for i in range(P_start, P_count + P_start):
+#     v_i = BusList[i].voltage_magnitude
+#     dirac_i = BusList[i].voltage_angle
+#     G_ii = complex(YBus[i][i]).real
+#     Pi = 2*abs(v_i)**2*G_ii
+#     for n in range(len(BusList)):
+#         v_n = BusList[n].voltage_magnitude
+#         dirac_n = BusList[n].voltage_angle
+#         if n != i:
+#             Y_in_polar = cmath.polar(YBus[i][n])
+#             Y_in = Y_in_polar[0]
+#             theta_in = Y_in_polar[1]
+#             Pi += abs(v_i*v_n*Y_in)*math.cos(theta_in + dirac_n - dirac_i)
+#         else:
+#             continue
+#     Pi_calc[i - P_start] = Pi

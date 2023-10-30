@@ -12,42 +12,56 @@ from NRLF import *
 """
 
 
+def solutionOuput(BusList):
+    k = 1
+
+
 def main():
-    line_data = ReadCsvFile('./files/network_configuration_line_data.csv')
-    bus_data = ReadCsvFile('./files/network_configuration_bus_data.csv')
+    # line_data = ReadCsvFile('./files/network_configuration_line_data.csv')
+    # bus_data = ReadCsvFile('./files/network_configuration_bus_data.csv')
+    line_data = ReadCsvFile('./files/test_line_data.csv')
+    bus_data = ReadCsvFile('./files/test_bus_data.csv')
 
     Sbase = 100 # MVA
     Ubase = 230 # kV
+    Zbase = (Ubase**2)/Sbase
     num_buses = len(bus_data)
 
     YBus = BuildYbusMatrix(line_data, num_buses)
-    BusList = buildBusList(bus_data, Sbase)
-
     bus_overview = setupBusType(bus_data)
+    BusList = buildBusList(bus_data, Sbase, bus_overview)
+
+    
     P_spec, Q_spec = findKnowns(bus_data, Sbase)
     v_guess, dirac_guess = findUnknowns(bus_overview, bus_data)
+    # Initialization Completed
 
+    # Values below are the ones that continuously update
     jacobian_matrix = buildJacobian(BusList, P_spec, Q_spec, v_guess, dirac_guess, YBus)
+    deltaP = calcP(BusList, P_spec, YBus)
+    deltaQ = calcQ(BusList, Q_spec, YBus)
+    delta_u = np.concatenate((deltaP, deltaQ), axis= 0)
+    delta_x = calcDeltaUnknowns(jacobian_matrix, delta_u)
+    updateVoltageAndAngleList(delta_x, dirac_guess, v_guess)
+    updateBusList(BusList, dirac_guess, v_guess)
+
+    # Burde nok bytte navn på knowns til delta_u, og unknowns til delta_x
+    # Dette som blir brukt i andre eksempler og lærebok
 
     df_jac = pd.DataFrame(jacobian_matrix)
     df_ybus = pd.DataFrame(YBus)
     print(df_ybus, "\n\n", df_jac)
-
-    deltaP = calcP(BusList, P_spec, YBus, Sbase)
-    deltaQ = calcQ(BusList, Q_spec, YBus, Sbase)
-    knowns = np.concatenate((deltaP, deltaQ), axis= 0)
-
-    df_inv_jac = pd.DataFrame(np.linalg.pinv(df_jac))
-    # print(df_inv_jac)
-    unknowns = calcDeltaUnknowns(jacobian_matrix, knowns)
-    # print(unknowns)
-
-    updateVoltageAndAngleList(unknowns, dirac_guess, v_guess)
-    updateBusList(BusList, dirac_guess, v_guess)
-
+    a = 1
     # NewtonRaphson()
+    """
+        When solution is complete we can use Equations (7.49) and (7.50) to calculate real and reactive power, P1 and Q1,
+        at the slack bus, and reactive power Q2 at the voltage controlled bus 2. 
+        Line flows can also be computed from the differences in the bus voltages and known parameters of the lines.
+        
+        We ougth to represent the solution of the system as shown in Figure 7.7 in the textbook or as shown in main.ipynb
 
-
+    """
+    
 
 
 

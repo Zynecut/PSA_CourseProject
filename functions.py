@@ -39,26 +39,36 @@ def setupLineAdmittanceList(line_dict):
     x.append(y_pq + half_line_charging_admittance) #y22
     return x
 
-def setupBusList(bus_dict, Sbase):
+def setupBusList(bus_dict, bus_type, Sbase):
     """
         Setup values for each bus object
     """
     bus = Bus(
-            bus_id= int(bus_dict['Bus Code']),
-            voltage_magnitude= float(bus_dict['Assumed bus voltage (pu)']),
-            voltage_angle= float(bus_dict['Angle']),
-            P_specified= (float(bus_dict['Generation (MW)']) - float(bus_dict['Load (MW)']))/Sbase if (bus_dict['Generation (MW)'] or bus_dict['Load (MW)']) != '-' else None,
-            Q_specified= (float(bus_dict['Generation (MVAr)']) - float(bus_dict['Load (MVAr)']))/Sbase if (bus_dict['Generation (MVAr)'] or bus_dict['Load (MVAr)']) != '-' else None
+            bus_id= bus_dict['Bus Code'],
+            voltage_magnitude= bus_dict['Assumed bus voltage (pu)'],
+            voltage_angle= bus_dict['Angle'],
+            P_gen= bus_dict['Generation (MW)'],
+            Q_gen= bus_dict['Generation (MVAr)'],
+            P_load= bus_dict['Load (MW)'],
+            Q_load=  bus_dict['Load (MVAr)'],
+            SBase= Sbase,
+            BusType= bus_type
         )
     return bus
 
-def buildBusList(bus_data, Sbase):
+# P_specified= (float(bus_dict['Generation (MW)']) - float(bus_dict['Load (MW)']))/Sbase if (bus_dict['Generation (MW)'] or bus_dict['Load (MW)']) != '-' else None,
+# Q_specified= (float(bus_dict['Generation (MVAr)']) - float(bus_dict['Load (MVAr)']))/Sbase if (bus_dict['Generation (MVAr)'] or bus_dict['Load (MVAr)']) != '-' else None
+
+def buildBusList(bus_data, Sbase, bus_overview):
     """
         Building list of Bus objects
     """
     BusList = []
+    i = 0
     for element in bus_data:
-        BusList.append(setupBusList(element, Sbase))
+        bus_type = bus_overview[i]['Type']
+        BusList.append(setupBusList(element, bus_type, Sbase))
+        i += 1
     return BusList
 
 def BuildYbusMatrix(line_data,num_buses):
@@ -381,58 +391,55 @@ def buildJacobian(BusList, P, Q, v, dirac, YBus):
     Jac_arr = np.concatenate((J1J2, J3J4), axis= 0)
     return Jac_arr
 
-def calcP(BusList, P_spec, YBus, Sbase):
+def calcP(BusList, P_spec, YBus):
     """
         Calculate ΔP
-    """
+    """ 
+    P_count = len(P_spec)
+    P_start = extract_number(next(iter(P_spec))) - 1
     Pi_calc = np.zeros([len(P_spec), 1])
-    start_val = len(BusList) - len(P_spec)
-    for i in range(start_val, len(BusList)):
+
+    for i in range(P_start, P_count + P_start):
         v_i = BusList[i].voltage_magnitude
         dirac_i = BusList[i].voltage_angle
-        G_ii = complex(YBus[i][i]).real
-        Pi = 2*abs(v_i)**2*G_ii
-        for n in range(1, len(BusList)):
+        Pi = 0
+        for n in range(len(BusList)):
             v_n = BusList[n].voltage_magnitude
             dirac_n = BusList[n].voltage_angle
-            if n != i:
-                Y_in_polar = cmath.polar(YBus[i][n])
-                Y_in = Y_in_polar[0]
-                theta_in = Y_in_polar[1]
-                Pi += abs(v_i*v_n*Y_in)*math.cos(theta_in + dirac_n - dirac_i)
-            else:
-                continue
-        Pi_calc[i-start_val] = Pi
+            Y_in_polar = cmath.polar(YBus[i][n])
+            Y_in = Y_in_polar[0]
+            theta_in = Y_in_polar[1]
+            Pi += abs(v_i*v_n*Y_in)*math.cos(theta_in + dirac_n - dirac_i)
+
+        Pi_calc[i - P_start] = Pi
 
     P_spec_arr = np.array(list(P_spec.values())).reshape(-1, 1) #.T
-    deltaP = P_spec_arr - Pi_calc/Sbase
+    deltaP = P_spec_arr - Pi_calc
     return deltaP
 
-def calcQ(BusList, Q_spec, YBus, Sbase):
+def calcQ(BusList, Q_spec, YBus):
     """
         Calculate ΔQ
     """
+    Q_count = len(Q_spec)
+    Q_start = extract_number(next(iter(Q_spec))) - 1
     Qi_calc = np.zeros([len(Q_spec), 1])
-    start_val = len(BusList) - len(Q_spec)
-    for i in range(start_val, len(BusList)):
+    for i in range(Q_start, Q_count + Q_start):
         v_i = BusList[i].voltage_magnitude
         dirac_i = BusList[i].voltage_angle
-        B_ii = complex(YBus[i][i]).imag
-        Qi = -2*abs(v_i)**2*B_ii
-        for n in range(1, len(BusList)):
+        Qi = 0
+        for n in range(len(BusList)):
             v_n = BusList[n].voltage_magnitude
             dirac_n = BusList[n].voltage_angle
-            if n != i:
-                Y_in_polar = cmath.polar(YBus[i][n])
-                Y_in = Y_in_polar[0]
-                theta_in = Y_in_polar[1]
-                Qi -= abs(v_i*v_n*Y_in)*math.sin(theta_in + dirac_n - dirac_i)
-            else:
-                continue
-        Qi_calc[i-start_val] = Qi
+            Y_in_polar = cmath.polar(YBus[i][n])
+            Y_in = Y_in_polar[0]
+            theta_in = Y_in_polar[1]
+            Qi -= abs(v_i*v_n*Y_in)*math.sin(theta_in + dirac_n - dirac_i)
+
+        Qi_calc[i-Q_start] = Qi
 
     Q_spec_arr = np.array(list(Q_spec.values())).reshape(-1, 1)
-    deltaQ = Q_spec_arr - (Qi_calc/Sbase)
+    deltaQ = Q_spec_arr - Qi_calc
     return deltaQ
 
 def calcDeltaUnknowns(jacobian_matrix, knowns):
@@ -448,14 +455,18 @@ def updateVoltageAndAngleList(unknowns, dirac_guess, v_guess):
         Update dirac and voltage lists for unknowns.
     """
     # Update DIRAC guesses with values from the first four elements of unknowns
-    for i in range(len(dirac_guess)):
-        dirac_key = f'DIRAC_{i+2}'  # Assuming it starts with 'DIRAC_2'
-        dirac_guess[dirac_key] += unknowns[i][0]
+    dirac_start = extract_number(next(iter(dirac_guess)))
+    dirac_count = len(dirac_guess)
+    for i in range(dirac_start, dirac_count + dirac_start):
+        dirac_key = f'DIRAC_{i}'
+        dirac_guess[dirac_key] += unknowns[i-dirac_start][0]
 
     # Update v guesses with values from the last three elements of unknowns
-    for i in range(len(v_guess)):
-        v_key = f'v_{i+3}'  # Assuming it starts with 'v_3'
-        v_guess[v_key] += unknowns[i + len(dirac_guess)][0]
+    count_v = len(v_guess)
+    v_start = extract_number(next(iter(v_guess)))
+    for i in range(v_start, count_v + v_start):
+        v_key = f'v_{i}'
+        v_guess[v_key] += unknowns[i-v_start+dirac_count][0]
 
 def updateBusList(BusList, dirac_guess, v_guess):
     """
@@ -477,6 +488,51 @@ def updateBusList(BusList, dirac_guess, v_guess):
             else:
                 continue
 
+def checkConvergence(tol, delta_u):
+    if np.all(delta_u < tol):
+        return True
+    else:
+        return False
+
+def updateSlackAndPV(BusList, YBus, Sbase):
+    """
+        Update Pi and Qi on SLACK bus and Qi on PV bus
+    """
+    for i in range(len(BusList)):
+        if BusList[i].BusType == 'Slack':
+            v_i = BusList[i].voltage_magnitude
+            dirac_i = BusList[i].voltage_angle
+            Pi = 0
+            for n in range(len(BusList)):
+                v_n = BusList[n].voltage_magnitude
+                dirac_n = BusList[n].voltage_angle
+                Y_in_polar = cmath.polar(YBus[i][n])
+                Y_in = Y_in_polar[0]
+                theta_in = Y_in_polar[1]
+                Pi += abs(v_i*v_n*Y_in)*math.cos(theta_in + dirac_n - dirac_i)
+            BusList[i].update_Pi_Qi(P_spec=Pi, P_gen= (Sbase*Pi - BusList[i].P_load))
+
+            Qi = 0
+            for n in range(len(BusList)):
+                v_n = BusList[n].voltage_magnitude
+                dirac_n = BusList[n].voltage_angle
+                Y_in_polar = cmath.polar(YBus[i][n])
+                Y_in = Y_in_polar[0]
+                theta_in = Y_in_polar[1]
+                Qi -= abs(v_i*v_n*Y_in)*math.sin(theta_in + dirac_n - dirac_i)
+            BusList[i].update_Pi_Qi(Q_spec=Qi, Q_gen= (Sbase*Qi - BusList[i].Q_load))
+
+        elif BusList[i].BusType == 'PV':
+            Qi = 0
+            for n in range(len(BusList)):
+                v_n = BusList[n].voltage_magnitude
+                dirac_n = BusList[n].voltage_angle
+                Y_in_polar = cmath.polar(YBus[i][n])
+                Y_in = Y_in_polar[0]
+                theta_in = Y_in_polar[1]
+                Qi -= abs(v_i*v_n*Y_in)*math.sin(theta_in + dirac_n - dirac_i)
+            BusList[i].update_Pi_Qi(Q_spec=Qi, Q_gen= (Sbase*Qi - BusList[i].Q_load))
+
 def calcDecoupledJacobian(BusList, P, Q, v, dirac, YBus):
     Jac1 = J1(BusList, P, dirac, YBus)
     Jac2 = np.zeros((len(P), len(v)))
@@ -494,6 +550,7 @@ def calcDecoupledDiracVoltage(dlf_jacobian, knowns):
 
 def initializeFastDecoupled(YBus):
     # Removes elements corresponding to SLACK bus
+    
     removeSlackElementYBus = YBus[1:, 1:]
 
     # Removes real parts of elements
