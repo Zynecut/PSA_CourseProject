@@ -22,6 +22,7 @@ def FDLF():
     """
     # Initialize FDLF buses
     B_sup1, B_sup2 = initializeFastDecoupled(YBus)
+    print(B_sup1, B_sup2)
 
 
 if __name__ == '__main__':
