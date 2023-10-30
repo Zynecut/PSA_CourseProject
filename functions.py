@@ -2,6 +2,7 @@ import math, cmath
 import re
 import csv
 import numpy as np
+import jinja2
 
 from classes import *
 
@@ -450,7 +451,7 @@ def calcDeltaUnknowns(jacobian_matrix, knowns):
     unknowns = np.dot(jac_inv, knowns)
     return unknowns
 
-def updateVoltageAndAngleList(unknowns, dirac_guess, v_guess):
+def updateVoltageAndAngleList(delta_x, dirac_guess, v_guess):
     """
         Update dirac and voltage lists for unknowns.
     """
@@ -459,15 +460,14 @@ def updateVoltageAndAngleList(unknowns, dirac_guess, v_guess):
     dirac_count = len(dirac_guess)
     for i in range(dirac_start, dirac_count + dirac_start):
         dirac_key = f'DIRAC_{i}'
-        dirac_guess[dirac_key] += unknowns[i-dirac_start][0]
+        dirac_guess[dirac_key] += delta_x[i-dirac_start][0]
 
     # Update v guesses with values from the last three elements of unknowns
     count_v = len(v_guess)
     v_start = extract_number(next(iter(v_guess)))
     for i in range(v_start, count_v + v_start):
         v_key = f'v_{i}'
-        v_guess[v_key] += unknowns[i-v_start+dirac_count][0]
-
+        v_guess[v_key] += delta_x[i-v_start+dirac_count][0]
 
 def updateBusList(BusList, dirac_guess, v_guess):
     """
@@ -490,7 +490,7 @@ def updateBusList(BusList, dirac_guess, v_guess):
                 continue
 
 def checkConvergence(tol, delta_u):
-    if np.all(delta_u < tol):
+    if np.all(abs(delta_u) < tol):
         return True
     else:
         return False
@@ -534,7 +534,6 @@ def updateSlackAndPV(BusList, YBus, Sbase):
                 Qi -= abs(v_i*v_n*Y_in)*math.sin(theta_in + dirac_n - dirac_i)
             BusList[i].update_Pi_Qi(Q_spec=Qi, Q_gen= (Sbase*Qi - BusList[i].Q_load))
 
-
 def calcDecoupledJacobian(BusList, P, Q, v, dirac, YBus):
     Jac1 = J1(BusList, P, dirac, YBus)
     Jac2 = np.zeros((len(P), len(v)))
@@ -550,18 +549,117 @@ def calcDecoupledDiracVoltage(dlf_jacobian, knowns):
     dirac_voltage = np.dot(jac_inv, knowns)
     return dirac_voltage
 
-def initializeFastDecoupled(YBus):
+def calcB_Prime(BusList, YBus):
     # Removes elements corresponding to SLACK bus
-    
-    removeSlackElementYBus = YBus[1:, 1:]
+    B_sup1 = None
+    B_sup2 = None
+    for i in range(len(BusList)):
+        if BusList[i].BusType == 'Slack':
+            bus_index = BusList[i].bus_id - 1
+            B_prime = np.delete(YBus, bus_index, axis=0)
+            B_prime = np.delete(B_prime, bus_index, axis=1)
+            # Removes real parts of elements
+            B_prime = B_prime.imag * (-1)
 
-    # Removes real parts of elements
-    B_sup1 = removeSlackElementYBus.imag
+        if BusList[i].BusType == 'PV':
+            bus_index = BusList[i].bus_id - 2
+            B_double_prime = np.delete(B_prime, bus_index, axis=0)
+            B_double_prime = np.delete(B_double_prime, bus_index, axis=1)
+    
+    return B_prime, B_double_prime
 
     # Removes elements corresponding to PV buses from B_sup1
-    B_sup2 = B_sup1[1:,1:]
-    return B_sup1, B_sup2
+    
+def calcDeltaPn_Vn(BusList, deltaP):
+    diff = len(BusList) - len(deltaP)
+    for i in range(len(BusList)):
+        if BusList[i].BusType != "Slack":
+            deltaP[i-diff] = deltaP[i-diff]/abs(BusList[i].voltage_magnitude)
+    return deltaP
+
+def calcDeltaQn_Vn(BusList, deltaQ):
+    diff = len(BusList) - len(deltaQ)
+    for i in range(len(BusList)):
+        if BusList[i].BusType != "Slack":
+            deltaQ[i-diff] = deltaQ[i-diff]/abs(BusList[i].voltage_magnitude)
+    return deltaQ
+
+def updateAngleFDLFandBusList(BusList, delta_dirac, dirac_guess=None):
+    """
+        Update angle list and angles in BusList, so that they can be used in ΔQn/|Vn|
+    """
+    dirac_start = extract_number(next(iter(dirac_guess)))
+    dirac_count = len(dirac_guess)
+    for i in range(dirac_start, dirac_count + dirac_start):
+        dirac_key = f'DIRAC_{i}'
+        dirac_guess[dirac_key] += delta_dirac[i-dirac_start][0]
+
+    for bus_id in dirac_guess:
+        dirac_num = extract_number(bus_id)
+        for i in range(len(BusList)):
+            if dirac_num == BusList[i].bus_id:
+                BusList[i].update_bus_voltage(new_voltage_angle=dirac_guess[bus_id])
+            else:
+                continue
+
+def updateVoltageFDLFandBusList(BusList, delta_v, v_guess=None):
+    """
+        Update voltage list and voltages in BusList.
+    """
+    count_v = len(v_guess)
+    v_start = extract_number(next(iter(v_guess)))
+    for i in range(v_start, count_v + v_start):
+        v_key = f'v_{i}'
+        v_guess[v_key] += delta_v[i-v_start][0]
+
+    for bus_id in v_guess:
+        v_num = extract_number(bus_id)
+        for i in range(len(BusList)):
+            if v_num == BusList[i].bus_id:
+                BusList[i].update_bus_voltage(new_voltage_magnitude=v_guess[bus_id])
+            else:
+                continue
 
 
 
+def print_dataframe_as_latex(dataframe):
+    "Generates code to display a dataframe in LaTeX using the tabularx package."
+    
+    # Generate LaTeX code
+    column_format_tabular = "c" * len(dataframe.columns)  # Create a "c" for each column using the tabular package
+    latex_code = dataframe.to_latex(index=False,
+                                    header=False,
+                                    column_format=column_format_tabular,
+                                    position="H",
+                                    label="tab:change-me",
+                                    caption="\color{red}Change me...")
+    
+    # Modify the LaTeX package
+    latex_code = latex_code.replace("tabular", "tabularx") # Uses the tabularx package instead of the tabular one
+    latex_code = latex_code.replace("\\caption", "\\centering\n\caption") # Adds the centering parameter to center the table
+
+    # Modify the column format
+    column_format_tabularx = "\n>{\\centering\\footnotesize\\arraybackslash}c" # First column uses the "c" parameter
+    for i in range(1, len(dataframe.columns)):
+        column_format_tabularx += "\n>{\\centering\\footnotesize\\arraybackslash}X" # All the other columns uses the "X" parameter
+    latex_code = latex_code.replace(column_format_tabular, "0.9\\textwidth}{" + column_format_tabularx) # Replaces the column format
+
+    # Use bold text for the header
+    header_row = " & ".join(["\\textbf{" + col + "}" for col in dataframe.columns])
+    latex_code = latex_code.replace("\\toprule", "\\toprule\n" + header_row + " \\\\")
+
+    print("\n---------------- LaTeX Code -----------------")
+    print(latex_code)
+
+    # # Definer kolonnenavn
+    # kolonner = ['Kolonne1', 'Kolonne2', 'Kolonne3', 'Kolonne4', 'Kolonne5']
+
+    # # Generer tilfeldige data
+    # data = np.random.rand(5, 5)
+
+    # # Opprett DataFrame
+    # df = pd.DataFrame(data, columns=kolonner)
+
+    # # Skriv ut DataFrame
+    # print_dataframe_as_latex(df)
 

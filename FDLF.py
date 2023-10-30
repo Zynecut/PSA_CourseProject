@@ -5,6 +5,41 @@ bus_data = ReadCsvFile('./files/network_configuration_bus_data.csv')
 Sbase = 100 # MVA
 Ubase = 230 # kV
 num_buses = len(bus_data)
+max_iterations = 10
+tolerance = 0.00001
+
+def iterateFDLF(BusList, YBus, P_spec, Q_spec, v_guess, dirac_guess, max_iterations, tolerance, B_prime, B_double_prime):
+
+    deltaP = calcP(BusList, P_spec, YBus)
+    deltaPn_Vn = calcDeltaPn_Vn(BusList, deltaP)
+    delta_Dirac = np.dot(B_prime, deltaPn_Vn)
+    updateAngleFDLFandBusList(BusList, delta_Dirac, dirac_guess)
+
+    deltaQ = calcQ(BusList, Q_spec, YBus)
+    deltaQn_Vn = calcDeltaQn_Vn(BusList, deltaQ)
+    delta_v = np.dot(B_double_prime, deltaQn_Vn)
+    updateVoltageFDLFandBusList(BusList, delta_v, v_guess)
+    delta_u = np.concatenate((deltaP, deltaQ), axis= 0)
+    k = 0
+    convergence = False
+    while not convergence:
+        if checkConvergence(tolerance, delta_u):
+            convergence = True
+        elif max_iterations < k:
+            break
+        else:
+            deltaP = calcP(BusList, P_spec, YBus)
+            deltaPn_Vn = calcDeltaPn_Vn(BusList, deltaP)
+            delta_Dirac = np.dot(B_prime, deltaPn_Vn)
+            updateAngleFDLFandBusList(BusList, delta_Dirac, dirac_guess)
+            deltaQ = calcQ(BusList, Q_spec, YBus)
+            deltaQn_Vn = calcDeltaQn_Vn(BusList, deltaQ)
+            delta_v = np.dot(B_double_prime, deltaQn_Vn)
+            updateVoltageFDLFandBusList(BusList, delta_v, v_guess)
+            delta_u = np.concatenate((deltaP, deltaQ), axis= 0)
+            k += 1
+
+    return k
 
 def FDLF():
     """
@@ -16,12 +51,34 @@ def FDLF():
         5. Return to Equation (7.95) to repeat the iteration until all mismatches are within specified tolerances
     """
 
+    num_buses = len(bus_data)
     YBus = BuildYbusMatrix(line_data, num_buses)
-    BusList = buildBusList(bus_data, Sbase)
+    bus_overview = setupBusType(bus_data)
+    BusList = buildBusList(bus_data, Sbase, bus_overview)
+    P_spec, Q_spec = findKnowns(bus_data, Sbase)
+    v_guess, dirac_guess = findUnknowns(bus_overview, bus_data)
+    B_prime, B_double_prime = calcB_Prime(BusList, YBus)
+    B_prime_inv = np.linalg.inv(B_prime)
+    B_double_prime_inv = np.linalg.inv(B_double_prime)
+
+    k = iterateFDLF(BusList= BusList, 
+                    YBus= YBus, 
+                    P_spec= P_spec, 
+                    Q_spec= Q_spec, 
+                    v_guess= v_guess, 
+                    dirac_guess= dirac_guess, 
+                    max_iterations= max_iterations, 
+                    tolerance= tolerance,
+                    B_prime= B_prime_inv,
+                    B_double_prime= B_double_prime_inv
+                    )
+
+    
 
     # Initialize FDLF buses
-    B_sup1, B_sup2 = initializeFastDecoupled(YBus)
-    print(B_sup1, B_sup2)
+    
+    print(k)
+    a = 1
 
 
 if __name__ == '__main__':
