@@ -404,3 +404,7 @@
 #         else:
 #             continue
 #     Pi_calc[i - P_start] = Pi
+
+
+# P_specified= (float(bus_dict['Generation (MW)']) - float(bus_dict['Load (MW)']))/Sbase if (bus_dict['Generation (MW)'] or bus_dict['Load (MW)']) != '-' else None,
+# Q_specified= (float(bus_dict['Generation (MVAr)']) - float(bus_dict['Load (MVAr)']))/Sbase if (bus_dict['Generation (MVAr)'] or bus_dict['Load (MVAr)']) != '-' else None

@@ -1,10 +1,12 @@
 from functions import *
 import pandas as pd
 
+# line_data = ReadCsvFile('./files/network_configuration_line_data_Fellestest.csv')
+# bus_data = ReadCsvFile('./files/network_configuration_bus_data_Fellestest.csv')
 line_data = ReadCsvFile('./files/network_configuration_line_data.csv')
 bus_data = ReadCsvFile('./files/network_configuration_bus_data.csv')
 Sbase = 100 # MVA
-Ubase = 230 # kV
+Ubase = 132 # kV
 max_iterations = 30
 tolerance = 0.001
 
@@ -50,18 +52,41 @@ def NewtonRaphson():
     P_spec, Q_spec = findKnowns(bus_data, Sbase)
     v_guess, dirac_guess = findUnknowns(bus_overview, bus_data)
     delta_u, delta_x, k = iterateNRLF(BusList= BusList, 
-                                     YBus= YBus, 
-                                     P_spec= P_spec, 
-                                     Q_spec= Q_spec, 
-                                     v_guess= v_guess, 
-                                     dirac_guess= dirac_guess, 
-                                     max_iterations= max_iterations, 
-                                     tolerance= tolerance
-                                     )
-    print(k, "\n\n" ,delta_u, "\n\n", delta_x, "\n\n")
+                    YBus= YBus, 
+                    P_spec= P_spec, 
+                    Q_spec= Q_spec, 
+                    v_guess= v_guess, 
+                    dirac_guess= dirac_guess, 
+                    max_iterations= max_iterations, 
+                    tolerance= tolerance
+                    )
+    print(k)
     updateSlackAndPV(BusList=BusList, YBus=YBus, Sbase=Sbase) # Sjekk Qi på PV bus
-    a = 1
 
+    # Calculate line losses 
+    # P = I^2 * R       R = r*Zbase
+    # Q = I^2 * X       X = x*Zbase
+    # Calc line flows 
+    # P1-2 and P2-1
+    # Q1-2 and Q2-1
+    # Can also use this to check line losses
+    print("\n")
+    data_to_add = []
+    for i in range(len(BusList)):
+        print(f"#Bus: {BusList[i].bus_id}, Type: {BusList[i].BusType}, v: {BusList[i].voltage_magnitude:.3f} [pu], δ: {(180/math.pi)*BusList[i].voltage_angle:.3f} [deg], P: {BusList[i].P_specified:.3f} [pu], Q: {BusList[i].Q_specified:.3f} [pu]")
+        dict_NRLF = {
+            'Bus': BusList[i].bus_id,
+            'Type': BusList[i].BusType,
+            'Voltage [pu]': BusList[i].voltage_magnitude,
+            'Angle [deg]': (180/math.pi)*BusList[i].voltage_angle,
+            'P [pu]': BusList[i].P_specified,
+            'Q [pu]': BusList[i].Q_specified
+        }
+        data_to_add.append(dict_NRLF)
+    df_NRLF = pd.DataFrame(data_to_add)
+    print("\n")
+    print(df_NRLF)
+    # print_dataframe_as_latex(df_NRLF)
 
 if __name__ == '__main__':
     NewtonRaphson()

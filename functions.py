@@ -57,9 +57,6 @@ def setupBusList(bus_dict, bus_type, Sbase):
         )
     return bus
 
-# P_specified= (float(bus_dict['Generation (MW)']) - float(bus_dict['Load (MW)']))/Sbase if (bus_dict['Generation (MW)'] or bus_dict['Load (MW)']) != '-' else None,
-# Q_specified= (float(bus_dict['Generation (MVAr)']) - float(bus_dict['Load (MVAr)']))/Sbase if (bus_dict['Generation (MVAr)'] or bus_dict['Load (MVAr)']) != '-' else None
-
 def buildBusList(bus_data, Sbase, bus_overview):
     """
         Building list of Bus objects
@@ -457,17 +454,25 @@ def updateVoltageAndAngleList(delta_x, dirac_guess, v_guess):
     """
     # Update DIRAC guesses with values from the first four elements of unknowns
     dirac_start = extract_number(next(iter(dirac_guess)))
+    dirac_end = dirac_start + 1
     dirac_count = len(dirac_guess)
-    for i in range(dirac_start, dirac_count + dirac_start):
+    for i in range(dirac_start, dirac_count + dirac_end):
         dirac_key = f'DIRAC_{i}'
-        dirac_guess[dirac_key] += delta_x[i-dirac_start][0]
+        if dirac_key in dirac_guess:
+            dirac_guess[dirac_key] += delta_x[i-dirac_start][0]
+        else:
+            dirac_start += 1
 
     # Update v guesses with values from the last three elements of unknowns
-    count_v = len(v_guess)
     v_start = extract_number(next(iter(v_guess)))
-    for i in range(v_start, count_v + v_start):
+    v_end = v_start + 1
+    count_v = len(v_guess)
+    for i in range(v_start, count_v + v_end):
         v_key = f'v_{i}'
-        v_guess[v_key] += delta_x[i-v_start+dirac_count][0]
+        if v_key in v_guess:
+            v_guess[v_key] += delta_x[i-v_start+dirac_count][0]
+        else:
+            v_start +=1
 
 def updateBusList(BusList, dirac_guess, v_guess):
     """
@@ -488,6 +493,11 @@ def updateBusList(BusList, dirac_guess, v_guess):
                 BusList[i].update_bus_voltage(new_voltage_angle=dirac_guess[bus_id])
             else:
                 continue
+
+def typeSwitch():
+
+    pass
+
 
 def checkConvergence(tol, delta_u):
     if np.all(abs(delta_u) < tol):
@@ -525,6 +535,8 @@ def updateSlackAndPV(BusList, YBus, Sbase):
 
         elif BusList[i].BusType == 'PV':
             Qi = 0
+            v_i = BusList[i].voltage_magnitude
+            dirac_i = BusList[i].voltage_angle
             for n in range(len(BusList)):
                 v_n = BusList[n].voltage_magnitude
                 dirac_n = BusList[n].voltage_angle
