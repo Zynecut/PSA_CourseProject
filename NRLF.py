@@ -1,14 +1,17 @@
 from functions import *
 import pandas as pd
 
-# line_data = ReadCsvFile('./files/network_configuration_line_data_Fellestest.csv')
-# bus_data = ReadCsvFile('./files/network_configuration_bus_data_Fellestest.csv')
-line_data = ReadCsvFile('./files/network_configuration_line_data.csv')
-bus_data = ReadCsvFile('./files/network_configuration_bus_data.csv')
+line_data = ReadCsvFile('./files/network_configuration_line_data_Fellestest.csv')
+bus_data = ReadCsvFile('./files/network_configuration_bus_data_Fellestest.csv')
+# line_data = ReadCsvFile('./files/network_configuration_line_data.csv')
+# bus_data = ReadCsvFile('./files/network_configuration_bus_data.csv')
 Sbase = 100 # MVA
 Ubase = 132 # kV
 max_iterations = 30
-tolerance = 0.001
+tolerance = 1e-3
+Q_lim = -0.75
+V_lim = -0.1 # take 1 - V_lim for max and 1 - abs(V_lim) for min
+
 
 def iterateNRLF(BusList, YBus, P_spec, Q_spec, v_guess, dirac_guess, max_iterations, tolerance):
     """
@@ -22,7 +25,6 @@ def iterateNRLF(BusList, YBus, P_spec, Q_spec, v_guess, dirac_guess, max_iterati
     k = 0
     convergence = False
     while not convergence:
-        # Decoupled Load Flow
         if checkConvergence(tolerance, delta_u):
             convergence = True
         elif max_iterations < k:
@@ -35,6 +37,10 @@ def iterateNRLF(BusList, YBus, P_spec, Q_spec, v_guess, dirac_guess, max_iterati
             delta_x= calcDeltaUnknowns(jacobian, delta_u)
             updateVoltageAndAngleList(delta_x, dirac_guess, v_guess)
             updateBusList(BusList, dirac_guess, v_guess)
+            # Q_spec, v_guess = checkTypeSwitch(BusList, YBus, Q_spec, v_guess, Q_lim, V_lim)
+            
+
+
             k += 1
     return delta_u, delta_x, k
 
@@ -63,6 +69,8 @@ def NewtonRaphson():
     print(k)
     updateSlackAndPV(BusList=BusList, YBus=YBus, Sbase=Sbase) # Sjekk Qi på PV bus
 
+
+
     # Calculate line losses 
     # P = I^2 * R       R = r*Zbase
     # Q = I^2 * X       X = x*Zbase
@@ -71,22 +79,10 @@ def NewtonRaphson():
     # Q1-2 and Q2-1
     # Can also use this to check line losses
     print("\n")
-    data_to_add = []
-    for i in range(len(BusList)):
-        print(f"#Bus: {BusList[i].bus_id}, Type: {BusList[i].BusType}, v: {BusList[i].voltage_magnitude:.3f} [pu], δ: {(180/math.pi)*BusList[i].voltage_angle:.3f} [deg], P: {BusList[i].P_specified:.3f} [pu], Q: {BusList[i].Q_specified:.3f} [pu]")
-        dict_NRLF = {
-            'Bus': BusList[i].bus_id,
-            'Type': BusList[i].BusType,
-            'Voltage [pu]': BusList[i].voltage_magnitude,
-            'Angle [deg]': (180/math.pi)*BusList[i].voltage_angle,
-            'P [pu]': BusList[i].P_specified,
-            'Q [pu]': BusList[i].Q_specified
-        }
-        data_to_add.append(dict_NRLF)
-    df_NRLF = pd.DataFrame(data_to_add)
+    df_NRLF = makeDataFrame(BusList)
     print("\n")
     print(df_NRLF)
-    # print_dataframe_as_latex(df_NRLF)
+    print_dataframe_as_latex(df_NRLF)
 
 if __name__ == '__main__':
     NewtonRaphson()

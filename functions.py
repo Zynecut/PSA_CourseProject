@@ -2,6 +2,7 @@ import math, cmath
 import re
 import csv
 import numpy as np
+import pandas as pd
 import jinja2
 
 from classes import *
@@ -52,7 +53,7 @@ def setupBusList(bus_dict, bus_type, Sbase):
             Q_gen= bus_dict['Generation (MVAr)'],
             P_load= bus_dict['Load (MW)'],
             Q_load=  bus_dict['Load (MVAr)'],
-            SBase= Sbase,
+            Sbase= Sbase,
             BusType= bus_type
         )
     return bus
@@ -393,23 +394,25 @@ def calcP(BusList, P_spec, YBus):
     """
         Calculate ΔP
     """ 
-    P_count = len(P_spec)
     P_start = extract_number(next(iter(P_spec))) - 1
+    P_end = P_start + len(BusList)
     Pi_calc = np.zeros([len(P_spec), 1])
-
-    for i in range(P_start, P_count + P_start):
-        v_i = BusList[i].voltage_magnitude
-        dirac_i = BusList[i].voltage_angle
-        Pi = 0
-        for n in range(len(BusList)):
-            v_n = BusList[n].voltage_magnitude
-            dirac_n = BusList[n].voltage_angle
-            Y_in_polar = cmath.polar(YBus[i][n])
-            Y_in = Y_in_polar[0]
-            theta_in = Y_in_polar[1]
-            Pi += abs(v_i*v_n*Y_in)*math.cos(theta_in + dirac_n - dirac_i)
-
-        Pi_calc[i - P_start] = Pi
+    for i in range(P_start, P_end):
+        key = f"P_{i+1}"
+        if key in P_spec:
+            v_i = BusList[i].voltage_magnitude
+            dirac_i = BusList[i].voltage_angle
+            Pi = 0
+            for n in range(len(BusList)):
+                v_n = BusList[n].voltage_magnitude
+                dirac_n = BusList[n].voltage_angle
+                Y_in_polar = cmath.polar(YBus[i][n])
+                Y_in = Y_in_polar[0]
+                theta_in = Y_in_polar[1]
+                Pi += abs(v_i*v_n*Y_in)*math.cos(theta_in + dirac_n - dirac_i)
+            Pi_calc[i - P_start] = Pi
+        else:
+            P_start += 1
 
     P_spec_arr = np.array(list(P_spec.values())).reshape(-1, 1) #.T
     deltaP = P_spec_arr - Pi_calc
@@ -419,22 +422,26 @@ def calcQ(BusList, Q_spec, YBus):
     """
         Calculate ΔQ
     """
-    Q_count = len(Q_spec)
     Q_start = extract_number(next(iter(Q_spec))) - 1
+    Q_end = Q_start + len(BusList)
     Qi_calc = np.zeros([len(Q_spec), 1])
-    for i in range(Q_start, Q_count + Q_start):
-        v_i = BusList[i].voltage_magnitude
-        dirac_i = BusList[i].voltage_angle
-        Qi = 0
-        for n in range(len(BusList)):
-            v_n = BusList[n].voltage_magnitude
-            dirac_n = BusList[n].voltage_angle
-            Y_in_polar = cmath.polar(YBus[i][n])
-            Y_in = Y_in_polar[0]
-            theta_in = Y_in_polar[1]
-            Qi -= abs(v_i*v_n*Y_in)*math.sin(theta_in + dirac_n - dirac_i)
 
-        Qi_calc[i-Q_start] = Qi
+    for i in range(Q_start, Q_end):
+        key = f"Q_{i+1}"
+        if key in Q_spec:
+            v_i = BusList[i].voltage_magnitude
+            dirac_i = BusList[i].voltage_angle
+            Qi = 0
+            for n in range(len(BusList)):
+                v_n = BusList[n].voltage_magnitude
+                dirac_n = BusList[n].voltage_angle
+                Y_in_polar = cmath.polar(YBus[i][n])
+                Y_in = Y_in_polar[0]
+                theta_in = Y_in_polar[1]
+                Qi -= abs(v_i*v_n*Y_in)*math.sin(theta_in + dirac_n - dirac_i)
+            Qi_calc[i-Q_start] = Qi
+        else:
+            Q_start += 1
 
     Q_spec_arr = np.array(list(Q_spec.values())).reshape(-1, 1)
     deltaQ = Q_spec_arr - Qi_calc
@@ -494,10 +501,70 @@ def updateBusList(BusList, dirac_guess, v_guess):
             else:
                 continue
 
-def typeSwitch():
+def checkTypeSwitch(BusList, YBus, Q_spec, v_guess, Q_lim, V_lim):
+    for i in range(len(BusList)):
+        if BusList[i].BusType == 'PV':
+            Qi = 0
+            v_i = BusList[i].voltage_magnitude
+            dirac_i = BusList[i].voltage_angle
+            for n in range(len(BusList)):
+                v_n = BusList[n].voltage_magnitude
+                dirac_n = BusList[n].voltage_angle
+                Y_in_polar = cmath.polar(YBus[i][n])
+                Y_in = Y_in_polar[0]
+                theta_in = Y_in_polar[1]
+                Qi -= abs(v_i*v_n*Y_in)*math.sin(theta_in + dirac_n - dirac_i)
 
-    pass
+            if Q_lim < Qi < abs(Q_lim):
+                continue
+            elif Qi >= abs(Q_lim):
+                Qi = abs(Q_lim)
+                BusList[i].typeSwitch("PQ")
+                BusList[i].update_Pi_Qi(Q_spec=Qi, Q_gen= (Qi - BusList[i].Q_load))
 
+                # Update Q_spec
+                key_Q = f"Q_{i+1}"
+                Q_spec_temp = {}
+                if key_Q not in Q_spec:
+                    Q_spec_temp[key_Q] = Qi
+                for k in Q_spec:
+                    Q_spec_temp[k] = Q_spec[k]
+                Q_spec = Q_spec_temp
+
+                # Update v_guess
+                key_v = f"v_{i+1}"
+                v_guess_temp = {}
+                if key_v not in v_guess:
+                    v_guess_temp[key_v] = BusList[i].voltage_magnitude
+                for k in v_guess:
+                    v_guess_temp[k] = v_guess[k]
+                v_guess = v_guess_temp
+
+            else:
+                Qi = Q_lim
+                BusList[i].typeSwitch("PQ")
+                BusList[i].update_Pi_Qi(Q_spec=Qi, Q_gen= (Qi - BusList[i].Q_load))
+
+                # Update Q_spec
+                key_Q = f"Q_{i+1}"
+                Q_spec_temp = {}
+                if key_Q not in Q_spec:
+                    Q_spec_temp[key_Q] = Qi
+                for k in Q_spec:
+                    Q_spec_temp[k] = Q_spec[k]
+                Q_spec = Q_spec_temp
+
+                # Update v_guess
+                key_v = f"v_{i+1}"
+                v_guess_temp = {}
+                if key_v not in v_guess:
+                    v_guess_temp[key_v] = BusList[i].voltage_magnitude
+                for k in v_guess:
+                    v_guess_temp[k] = v_guess[k]
+                v_guess = v_guess_temp
+
+    return Q_spec, v_guess
+    
 
 def checkConvergence(tol, delta_u):
     if np.all(abs(delta_u) < tol):
@@ -521,7 +588,7 @@ def updateSlackAndPV(BusList, YBus, Sbase):
                 Y_in = Y_in_polar[0]
                 theta_in = Y_in_polar[1]
                 Pi += abs(v_i*v_n*Y_in)*math.cos(theta_in + dirac_n - dirac_i)
-            BusList[i].update_Pi_Qi(P_spec=Pi, P_gen= (Sbase*Pi - BusList[i].P_load))
+            BusList[i].update_Pi_Qi(P_spec=Pi, P_gen= (Pi - BusList[i].P_load))
 
             Qi = 0
             for n in range(len(BusList)):
@@ -531,7 +598,7 @@ def updateSlackAndPV(BusList, YBus, Sbase):
                 Y_in = Y_in_polar[0]
                 theta_in = Y_in_polar[1]
                 Qi -= abs(v_i*v_n*Y_in)*math.sin(theta_in + dirac_n - dirac_i)
-            BusList[i].update_Pi_Qi(Q_spec=Qi, Q_gen= (Sbase*Qi - BusList[i].Q_load))
+            BusList[i].update_Pi_Qi(Q_spec=Qi, Q_gen= (Qi - BusList[i].Q_load))
 
         elif BusList[i].BusType == 'PV':
             Qi = 0
@@ -544,7 +611,7 @@ def updateSlackAndPV(BusList, YBus, Sbase):
                 Y_in = Y_in_polar[0]
                 theta_in = Y_in_polar[1]
                 Qi -= abs(v_i*v_n*Y_in)*math.sin(theta_in + dirac_n - dirac_i)
-            BusList[i].update_Pi_Qi(Q_spec=Qi, Q_gen= (Sbase*Qi - BusList[i].Q_load))
+            BusList[i].update_Pi_Qi(Q_spec=Qi, Q_gen= (Qi - BusList[i].Q_load))
 
 def calcDecoupledJacobian(BusList, P, Q, v, dirac, YBus):
     Jac1 = J1(BusList, P, dirac, YBus)
@@ -632,7 +699,21 @@ def updateVoltageFDLFandBusList(BusList, delta_v, v_guess=None):
             else:
                 continue
 
-
+def makeDataFrame(BusList):
+    data_to_add = []
+    for i in range(len(BusList)):
+        # print(f"#Bus: {BusList[i].bus_id}, Type: {BusList[i].BusType}, v: {BusList[i].voltage_magnitude:.3f} [pu], δ: {(180/math.pi)*BusList[i].voltage_angle:.3f} [deg], P: {BusList[i].P_specified:.3f} [pu], Q: {BusList[i].Q_specified:.3f} [pu]")
+        dict_NRLF = {
+            'Bus': BusList[i].bus_id,
+            'Type': BusList[i].BusType,
+            'Voltage [pu]': BusList[i].voltage_magnitude,
+            'Angle [deg]': (180/math.pi)*BusList[i].voltage_angle,
+            'P [pu]': BusList[i].P_specified,
+            'Q [pu]': BusList[i].Q_specified
+        }
+        data_to_add.append(dict_NRLF)
+    df_NRLF = pd.DataFrame(data_to_add)
+    return df_NRLF
 
 def print_dataframe_as_latex(dataframe):
     "Generates code to display a dataframe in LaTeX using the tabularx package."
