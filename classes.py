@@ -1,18 +1,18 @@
 class Bus:
-    def __init__(self, bus_id, voltage_magnitude, voltage_angle, P_gen, Q_gen, P_load, Q_load, BusType, SBase):
+    def __init__(self, bus_id, voltage_magnitude, voltage_angle, P_gen, Q_gen, P_load, Q_load, BusType, Sbase):
         self.bus_id = int(bus_id)
         self.voltage_magnitude = float(voltage_magnitude)
         self.voltage_angle = float(voltage_angle)
-        self.P_gen = float(P_gen) if P_gen != '-' else None
-        self.Q_gen = float(Q_gen) if Q_gen != '-' else None
-        self.P_load = float(P_load) if P_load != '-' else None
-        self.Q_load = float(Q_load) if Q_load != '-' else None
+        self.P_gen = float(P_gen)/Sbase if P_gen != '-' else None
+        self.Q_gen = float(Q_gen)/Sbase if Q_gen != '-' else None
+        self.P_load = float(P_load)/Sbase if P_load != '-' else None
+        self.Q_load = float(Q_load)/Sbase if Q_load != '-' else None
         if self.P_gen is not None and self.P_load is not None:
-            self.P_specified = (self.P_gen - self.P_load) / SBase
+            self.P_specified = self.P_gen - self.P_load
         else:
             self.P_specified = None
         if self.Q_gen is not None and self.Q_load is not None:
-            self.Q_specified = (self.Q_gen - self.Q_load) / SBase
+            self.Q_specified = self.Q_gen - self.Q_load
         else:
             self.Q_specified = None
         self.BusType = BusType
@@ -37,3 +37,6 @@ class Bus:
             self.P_gen = P_gen
         if Q_gen is not None:
             self.Q_gen = Q_gen
+
+    def typeSwitch(self, new_BusType):
+        self.BusType = new_BusType
