@@ -212,6 +212,56 @@ def extract_number(s):
     else:
         return None
 
+# def J1(BusList, P, dirac, YBus):
+#     '''
+#         Calculate the first jacobian matrix, refering to the power and voltages.
+#     '''
+#     count_P = len(P)
+#     P_start = extract_number(next(iter(P))) - 1
+#     P_end = len(BusList)
+#     count_dirac = len(dirac)
+#     dirac_start = extract_number(next(iter(dirac))) - 1
+#     dirac_end = len(BusList)
+#     J1_arr = np.zeros((count_P,count_dirac))
+
+#     for i in range(P_start, P_end):
+#         for j in range(dirac_start, dirac_end):
+#             PiDiraci = 0
+#             key_P = f"P_{i+1}"
+#             key_d = f"DIRAC_{j+1}"
+#             if i != j:  
+#                 if key_P in P and key_d in dirac:
+#                 # Off-diagonal elements of J1
+#                     v_i = BusList[i].voltage_magnitude
+#                     v_j = BusList[j].voltage_magnitude
+#                     dirac_i = BusList[i].voltage_angle
+#                     dirac_j = BusList[j].voltage_angle
+
+#                     Y_ij_polar = cmath.polar(YBus[i][j])
+#                     Y_ij = Y_ij_polar[0]
+#                     theta_ij = Y_ij_polar[1]
+#                     J1_arr[i-P_start][j-dirac_start] = - abs(v_i*v_j*Y_ij)*math.sin(theta_ij + dirac_j - dirac_i)
+#             else: 
+#                 # Diagonal elements of J1
+#                 if key_P in P:
+#                     v_i = BusList[i].voltage_magnitude
+#                     dirac_i = BusList[i].voltage_angle
+#                     for n in range(dirac_end):
+#                         if n != i:
+#                             v_n = BusList[n].voltage_magnitude
+#                             dirac_n = BusList[n].voltage_angle
+#                             Y_in_polar = cmath.polar(YBus[i][n])
+#                             Y_in = Y_in_polar[0]
+#                             theta_in = Y_in_polar[1]
+#                             PiDiraci += abs(v_i*v_n*Y_in)*math.sin(theta_in + dirac_n - dirac_i)
+#                         else:
+#                             continue
+#                 J1_arr[i-P_start][i-dirac_start] = PiDiraci
+            
+
+#     return J1_arr
+
+
 def J1(BusList, P, dirac, YBus):
     '''
         Calculate the first jacobian matrix, refering to the power and voltages.
@@ -252,6 +302,7 @@ def J1(BusList, P, dirac, YBus):
                         continue
                 J1_arr[i-P_start][i-dirac_start] = PiDiraci
     return J1_arr
+
 
 def J2(BusList, P, v, YBus):
     '''

@@ -1,10 +1,10 @@
 from functions import *
 import pandas as pd
 
-line_data = ReadCsvFile('./files/network_configuration_line_data_Fellestest.csv')
-bus_data = ReadCsvFile('./files/network_configuration_bus_data_Fellestest.csv')
-# line_data = ReadCsvFile('./files/network_configuration_line_data.csv')
-# bus_data = ReadCsvFile('./files/network_configuration_bus_data.csv')
+# line_data = ReadCsvFile('./files/network_configuration_line_data_Fellestest.csv')
+# bus_data = ReadCsvFile('./files/network_configuration_bus_data_Fellestest.csv')
+line_data = ReadCsvFile('./files/network_configuration_line_data.csv')
+bus_data = ReadCsvFile('./files/network_configuration_bus_data.csv')
 Sbase = 100 # MVA
 Ubase = 132 # kV
 max_iterations = 30
