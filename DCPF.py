@@ -1,28 +1,24 @@
 from functions import *
 import pandas as pd
 
-line_data = ReadCsvFile('./files/network_configuration_line_data.csv')
-bus_data = ReadCsvFile('./files/network_configuration_bus_data.csv')
+line_data = ReadCsvFile('./files/given_network/network_configuration_line_data.csv')
+bus_data = ReadCsvFile('./files/given_network/network_configuration_bus_data_slack1.csv')
 Sbase = 100 # MVA
 Ubase = 230 # kV
 
 
 
-def DCPF():
+def DCPF(bus_data, line_data, Sbase):
     num_buses = len(bus_data)
 
     YBus = BuildYbusMatrix(line_data, num_buses)
-    BusList = buildBusList(bus_data, Sbase)
+    bus_overview = setupBusType(bus_data)
+    BusList = buildBusList(bus_data, Sbase, bus_overview)
 
     bus_overview = setupBusType(bus_data)
     P_spec, Q_spec = findKnowns(bus_data, Sbase)
-    v_guess, dirac_guess = findUnknowns(bus_overview, bus_data)
-    
-    jacobian_matrix = buildJacobian(BusList, P_spec, Q_spec, v_guess, dirac_guess, YBus)
 
-    df_jac = pd.DataFrame(jacobian_matrix)
     df_ybus = pd.DataFrame(YBus)
-    print(df_ybus, "\n\n", df_jac)
 
     slack_bus_info = findSlackBusType(bus_overview)
 
@@ -36,6 +32,12 @@ def DCPF():
     df_Ydc = df_removeslackElementYbus.apply(lambda x: x.apply(lambda val: val.imag)) #create new DataFrame with only the imaginary part
 
     df_Ydc_neg = df_Ydc * -1   #Negative of imaginary part
+
+    # New shit bruv
+    YBus_DC = YBusDC(BusList, YBus)
+
+    print(YBus_DC)
+
 
     print(df_Ydc_neg)
     df_Ydc_inv = np.linalg.inv(df_Ydc_neg) #Inverse of Ydc
@@ -57,27 +59,25 @@ def DCPF():
     print(df_Ydc_absolute)
 
 
-    index = 1
-    col = 0
-    cell_val = df_Ydc_absolute[index][col]
-    print(cell_val)
+    # index = 1
+    # col = 0
+    # cell_val = df_Ydc_absolute[index][col]
+    # print(cell_val)
 
-    index = 0  #skal alltid være 0
-    col = 0  #skal være lik col til cell_val
-    cell_val2 = df_phaseangle[index][col]
-    print(cell_val2)
+    # index = 0  #skal alltid være 0
+    # col = 0  #skal være lik col til cell_val
+    # cell_val2 = df_phaseangle[index][col]
+    # print(cell_val2)
 
-    index = 0 #skal alltid være null
-    col = 1 #skal være lik index til cell_val
-    cell_val3 = df_phaseangle[index][col]
-    print(cell_val3)
+    # index = 0 #skal alltid være null
+    # col = 1 #skal være lik index til cell_val
+    # cell_val3 = df_phaseangle[index][col]
+    # print(cell_val3)
 
-    real_power_12 = cell_val * (cell_val2 - cell_val3 )*Sbase
-    print('P1-2 = ', real_power_12)
+    # real_power_12 = cell_val * (cell_val2 - cell_val3 )*Sbase
+    # print('P1-2 = ', real_power_12)
 
    
-
-
     result_df = pd.DataFrame(columns=df_Ydc_absolute.columns, index=df_Ydc_absolute.index)
     k = 0
     for rad in range(df_Ydc_absolute.shape[1]):
@@ -92,36 +92,8 @@ def DCPF():
                 k = 0
     print(result_df)            
 
-    # for row in range(df_Ydc_absolute.shape[0]):
-    #     for col in range(df_Ydc_absolute.shape[1]):
-    #         if df_Ydc_absolute.iloc[row, col] != 0 and row != col:
-    #             result_df.iloc[row,col] = df_Ydc_absolute.iloc[row,col]*df_phaseangle.iloc[row, 0]
-
-    # print(result_df) 
 
             
-
-
-    
-
-
-   
-   
-
-
-          
-
-
-
-
-    
-    
-
-
-
-
-
-
 
 
 
@@ -131,18 +103,9 @@ def findSlackBusType(bus_overview):
             return bus_info['Bus']
 
 
-
-    #print(bus_overview[1]['Type'])  #løkke fra 1 til len() av bus_overview og finne posisjon for slack bus. 
-
-    #runDCPF()
-
 if __name__ == '__main__':
-    DCPF()
-
-
-def runDCPF():
-
-
-    return
-
+    DCPF(bus_data=bus_data,
+         line_data=line_data,
+         Sbase=Sbase
+         )
 
