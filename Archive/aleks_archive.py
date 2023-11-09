@@ -408,3 +408,172 @@
 
 # P_specified= (float(bus_dict['Generation (MW)']) - float(bus_dict['Load (MW)']))/Sbase if (bus_dict['Generation (MW)'] or bus_dict['Load (MW)']) != '-' else None,
 # Q_specified= (float(bus_dict['Generation (MVAr)']) - float(bus_dict['Load (MVAr)']))/Sbase if (bus_dict['Generation (MVAr)'] or bus_dict['Load (MVAr)']) != '-' else None
+
+
+# def J1(BusList, P, dirac, YBus):  # ORIGINAL
+#     '''
+#         Calculate the first jacobian matrix, refering to the power and voltages.
+#     '''
+#     count_P = len(P)
+#     P_start = extract_number(next(iter(P))) - 1
+#     count_dirac = len(dirac)
+#     dirac_start = extract_number(next(iter(dirac))) - 1
+#     J1_arr = np.zeros((count_P,count_dirac))
+
+#     for i in range(P_start, count_P + P_start):
+#         for j in range(dirac_start, count_dirac + dirac_start):
+#             PiDiraci = 0
+#             if i != j:  
+#                 # Off-diagonal elements of J1
+#                 v_i = BusList[i].voltage_magnitude
+#                 v_j = BusList[j].voltage_magnitude
+#                 dirac_i = BusList[i].voltage_angle
+#                 dirac_j = BusList[j].voltage_angle
+
+#                 Y_ij_polar = cmath.polar(YBus[i][j])
+#                 Y_ij = Y_ij_polar[0]
+#                 theta_ij = Y_ij_polar[1]
+#                 J1_arr[i-P_start][j-dirac_start] = - abs(v_i*v_j*Y_ij)*math.sin(theta_ij + dirac_j - dirac_i)
+#             else: 
+#                 # Diagonal elements of J1
+#                 v_i = BusList[i].voltage_magnitude
+#                 dirac_i = BusList[i].voltage_angle
+#                 for n in range(count_dirac + dirac_start):
+#                     if n != i:
+#                         v_n = BusList[n].voltage_magnitude
+#                         dirac_n = BusList[n].voltage_angle
+#                         Y_in_polar = cmath.polar(YBus[i][n])
+#                         Y_in = Y_in_polar[0]
+#                         theta_in = Y_in_polar[1]
+#                         PiDiraci += abs(v_i*v_n*Y_in)*math.sin(theta_in + dirac_n - dirac_i)
+#                     else:
+#                         continue
+#                 J1_arr[i-P_start][i-dirac_start] = PiDiraci
+#     return J1_arr
+
+
+# def J2(BusList, P, v, YBus):
+#     '''
+#         Calculate the second jacobian matrix, refering to the power and voltages.
+#     '''
+#     count_P = len(P)
+#     P_start = extract_number(next(iter(P))) - 1
+#     count_v = len(v)
+#     v_start = extract_number(next(iter(v))) - 1
+#     J2_arr = np.zeros((count_P, count_v))
+
+#     for i in range(P_start, count_P + P_start):
+#         for j in range(v_start, count_v + v_start):
+#             if i != j:  
+#                 # Off-diagonal elements of J2
+#                 # Deklarere disse fra bus listen
+#                 v_i = BusList[i].voltage_magnitude
+#                 dirac_i = BusList[i].voltage_angle
+#                 dirac_j = BusList[j].voltage_angle
+#                 Y_ij_polar = cmath.polar(YBus[i][j])
+#                 Y_ij = Y_ij_polar[0]
+#                 theta_ij = Y_ij_polar[1]
+#                 J2_arr[i-P_start][j-v_start] = abs(v_i*Y_ij)*math.cos(theta_ij + dirac_j - dirac_i)
+#             else: 
+#                 # Diagonal elements of J2
+#                 v_i = BusList[i].voltage_magnitude
+#                 dirac_i = BusList[i].voltage_angle
+#                 G_ii = complex(YBus[i][i]).real
+#                 PiVi = 2*abs(v_i)*G_ii
+#                 for n in range(count_v + v_start):
+#                     v_n = BusList[n].voltage_magnitude
+#                     dirac_n = BusList[n].voltage_angle
+#                     if n != i:
+#                         Y_in_polar = cmath.polar(YBus[i][n])
+#                         Y_in = Y_in_polar[0]
+#                         theta_in = Y_in_polar[1] # return radian value
+#                         PiVi += abs(v_n*Y_in)*math.cos(theta_in + dirac_n - dirac_i)
+#                     else:
+#                         continue
+#                 J2_arr[i-P_start][i-v_start] = PiVi
+#     return J2_arr
+
+
+# def J3(BusList, Q, dirac, YBus):
+#     '''
+#         Calculate the third jacobian matrix, refering to the reactive power and voltages.
+#     '''
+#     count_Q = len(Q)
+#     Q_start = extract_number(next(iter(Q))) - 1
+#     count_dirac = len(dirac)
+#     dirac_start = extract_number(next(iter(dirac))) - 1
+#     J3_arr = np.zeros((count_Q, count_dirac))
+
+#     for i in range(Q_start, count_Q + Q_start):
+#         for j in range(dirac_start, count_dirac + dirac_start):
+#             if i != j:  
+#                 # Off-diagonal elements of J3
+#                 v_i = BusList[i].voltage_magnitude
+#                 v_j = BusList[j].voltage_magnitude
+#                 dirac_i = BusList[i].voltage_angle
+#                 dirac_j = BusList[j].voltage_angle
+
+#                 Y_ij_polar = cmath.polar(YBus[i][j])
+#                 Y_ij = Y_ij_polar[0]
+#                 theta_ij = Y_ij_polar[1]
+#                 J3_arr[i-Q_start][j-dirac_start] = - abs(v_i*v_j*Y_ij)*math.cos(theta_ij + dirac_j - dirac_i)
+#             else: 
+#                 # Diagonal elements of J3
+#                 QiDiraci = 0
+#                 v_i = BusList[i].voltage_magnitude
+#                 dirac_i = BusList[i].voltage_angle
+#                 for n in range(count_dirac + dirac_start):
+#                     v_n = BusList[n].voltage_magnitude
+#                     dirac_n = BusList[n].voltage_angle
+#                     if n != i:
+#                         Y_in_polar = cmath.polar(YBus[i][n])
+#                         Y_in = Y_in_polar[0]
+#                         theta_in = Y_in_polar[1]
+#                         QiDiraci += abs(v_i*v_n*Y_in)*math.cos(theta_in + dirac_n - dirac_i)
+#                     else:
+#                         continue
+#                 J3_arr[i-Q_start][i-dirac_start] = QiDiraci
+#     return J3_arr
+
+
+# def J4(BusList, Q, v, YBus):
+#     '''
+#         Calculate the second jacobian matrix, refering to the power and voltages.
+#     '''
+#     count_Q = len(Q)
+#     Q_start = extract_number(next(iter(Q))) - 1
+#     count_v = len(v)
+#     v_start = extract_number(next(iter(v))) - 1
+#     J4_arr = np.zeros((count_Q, count_v))
+
+#     for i in range(Q_start, count_Q + Q_start):
+#         for j in range(v_start, count_v + v_start):
+#             if i != j:  
+#                 # Off-diagonal elements of J4
+#                 v_i = BusList[i].voltage_magnitude
+#                 dirac_i = BusList[i].voltage_angle
+#                 dirac_j = BusList[j].voltage_angle
+
+#                 Y_ij_polar = cmath.polar(YBus[i][j])
+#                 Y_ij = Y_ij_polar[0]
+#                 theta_ij = Y_ij_polar[1]
+#                 J4_arr[i-Q_start][j-v_start] = - abs(v_i*Y_ij)*math.sin(theta_ij + dirac_j - dirac_i)
+#             else: 
+#                 # Diagonal elements of J4
+#                 v_i = BusList[i].voltage_magnitude
+#                 dirac_i = BusList[i].voltage_angle
+#                 B_ii = complex(YBus[i][i]).imag
+#                 QiVi = - 2*abs(v_i)*B_ii
+
+#                 for n in range(count_v + v_start):
+#                     v_n = BusList[n].voltage_magnitude
+#                     dirac_n = BusList[n].voltage_angle
+#                     if n != i:
+#                         Y_in_polar = cmath.polar(YBus[i][n])
+#                         Y_in = Y_in_polar[0]
+#                         theta_in = Y_in_polar[1]
+#                         QiVi -= abs(v_n*Y_in)*math.sin(theta_in + dirac_n - dirac_i)
+#                     else:
+#                         continue
+#                 J4_arr[i-Q_start][i-v_start] = QiVi
+#     return J4_arr
