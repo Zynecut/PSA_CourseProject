@@ -109,6 +109,24 @@ def buildBusList(bus_data, Sbase, bus_overview):
         i += 1
     return BusList
 
+def setupLineList(line_dict):
+    line = Line(
+        from_line= line_dict["From line"],
+        to_line= line_dict["To line"],
+        R_pu= line_dict["R[pu]"],
+        X_pu= line_dict["X[pu]"],
+        half_line_adm= line_dict["Half Line Charging Admittance"]
+    )
+    return line
+
+
+def buildLineList(line_data):
+    LineList = []
+    for element in line_data:
+        LineList.append(setupLineList(element))
+    return LineList
+
+
 def BuildYbusMatrix(line_data, num_buses):
     """
         Construct YBus Matrix for an N-bus system

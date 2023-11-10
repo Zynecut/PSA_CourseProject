@@ -56,3 +56,16 @@ class Bus:
             Updates BusType if it is type switched.
         """
         self.BusType = new_BusType
+
+
+class Line:
+    def __init__(self, from_line, to_line, R_pu, X_pu, half_line_adm):
+        self.from_line = int(from_line)
+        self.to_line = int(to_line)
+        self.R_pu = float(R_pu)
+        self.X_pu = float(X_pu)
+        self.half_line_adm = float(half_line_adm)
+        self.P_loss = None
+        self.Q_loss = None
+        self.current = None
+
