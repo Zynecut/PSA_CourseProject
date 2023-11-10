@@ -74,15 +74,17 @@ def NewtonRaphson():
     print(k)
     updateSlackAndPV(BusList=BusList, YBus=YBus, Sbase=Sbase) # Sjekk Qi på PV bus
     
-    tap, sump, sumq = Losses(line_data, BusList)
+    tap, sump, sumq, flow = Power(line_data, BusList)
 
     print("\n")
     df_NRLF = makeDataFrame(BusList)
     print("\n")
     print(df_NRLF)
-    print_dataframe_as_latex(df_NRLF)
+    # print_dataframe_as_latex(df_NRLF)
     print(tap)
     print(sump, sumq)
+    print(flow)
+
 
     # Calculate line losses 
     # P = I^2 * R       R = r*Zbase
@@ -95,16 +97,31 @@ def NewtonRaphson():
     # # Calculate line losses
 
 
-def Losses(line_data, BusList):
+def Power(line_data, BusList):
 
     sumActivePowerloss = 0
     sumReactivPowerloss = 0
 
     Line_losses = []
+    Line_flow = []
+
+    # matrix = np.zeros(len(BusList), len(BusList))
+
+    # for a in range(len(line_data)):
+    #     busa = int(line_data[a]['From line'])
+    #     busb = int(line_data[a]['To line'])
+    #     for b in range(len(BusList)):
+    #         break
+
+            
+
+
 
     for d in (line_data): 
         busa = int(d['From line'])
         busb = int(d['To line'])
+
+
         Name = f"Line {busa}-{busb}"
 
         va = float(BusList[busa - 1].voltage_magnitude) 
@@ -116,7 +133,7 @@ def Losses(line_data, BusList):
         Va = cmath.rect(va, dirac_a)
         Vb = cmath.rect(vb, dirac_b)
 
-        Yc = (-1j* float(d['Half Line Charging Admittance'])) 
+        Yc = -1j* float(d['Half Line Charging Admittance'])
 
         Zr = float(d['R[pu]']) 
         Zl = 1j*float(d['X[pu]']) 
@@ -146,16 +163,25 @@ def Losses(line_data, BusList):
                         'Reactive Powerloss [MVAr]': Qloss}
 
         Line_losses.append(Line_loss)
+
+
+        Line_direction = {'Line' : Name,
+                            f'Active power  {busa}': Pab,
+                            f'Active power set from Line {busb}': Pba,
+                            f'Reactive power set from Line {busa}': Qab,
+                            f'Reactive power set from Line {busb}': Qba}
+        
+        Line_flow.append(Line_direction)
+
             
 
-        dfLineloss = pd.DataFrame(Line_losses)
-        dfLineloss.set_index('Line', inplace=True)
+    dfPowerflow = pd.DataFrame(Line_flow)
+    dfPowerflow.set_index('Line', inplace=True)
+    dfLineloss = pd.DataFrame(Line_losses)
+    dfLineloss.set_index('Line', inplace=True)
 
 
-    return dfLineloss, sumActivePowerloss, sumReactivPowerloss
-
-
-
+    return dfLineloss, sumActivePowerloss, sumReactivPowerloss, dfPowerflow
 
 
 
