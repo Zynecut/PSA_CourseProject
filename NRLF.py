@@ -1,18 +1,19 @@
 from functions import *
 import pandas as pd
+import time
 
 
 # Given data
-# line_data = ReadCsvFile('./files/given_network/network_configuration_line_data.csv')
-# bus_data = ReadCsvFile('./files/given_network/network_configuration_bus_data_slack1.csv')
+line_data = ReadCsvFile('./files/given_network/network_configuration_line_data.csv')
+bus_data = ReadCsvFile('./files/given_network/network_configuration_bus_data_slack1.csv')
 # bus_data = ReadCsvFile('./files/given_network/network_configuration_bus_data_slack2.csv')
 
 # Test data
 # line_data = ReadCsvFile('./files/test_network/test_line_data.csv')
 # bus_data = ReadCsvFile('./files/test_network/test_bus_data.csv')
 
-line_data = ReadCsvFile('./files/test_network/network_configuration_line_data_Fellestest.csv')
-bus_data = ReadCsvFile('./files/test_network/network_configuration_bus_data_Fellestest.csv')
+# line_data = ReadCsvFile('./files/test_network/network_configuration_line_data_Fellestest.csv')
+# bus_data = ReadCsvFile('./files/test_network/network_configuration_bus_data_Fellestest.csv')
 
 Sbase = 100 # MVA
 Ubase = 230 # kV
@@ -57,10 +58,12 @@ def NewtonRaphson(bus_data, line_data, Sbase, max_iterations, tolerance, Q_lim, 
         delta_u is known values - ΔP, ΔQ
         delta_x is unknown values - Δδ, Δ|v|
     """
+    start_time = time.time()
     num_buses = len(bus_data)
     YBus = BuildYbusMatrix(line_data, num_buses)
     bus_overview = setupBusType(bus_data)
     BusList = buildBusList(bus_data, Sbase, bus_overview)
+    LineList = buildLineList(line_data)
     P_spec, Q_spec = findKnowns(bus_data, Sbase)
     v_guess, dirac_guess = findUnknowns(bus_overview, bus_data)
     delta_u, delta_x, k = iterateNRLF(BusList= BusList, 
@@ -89,6 +92,7 @@ def NewtonRaphson(bus_data, line_data, Sbase, max_iterations, tolerance, Q_lim, 
     # print_dataframe_as_latex(df_NRLF)
     test = df_NRLF["P [pu]"].sum()
     print(test)
+    print("--- %s seconds ---" % (time.time() - start_time))
 
     """
         If voltage magnitude violation, change (P2, change gen PG2 or load demand PL2, mostly PG2)
