@@ -1096,3 +1096,79 @@ def print_dataframe_as_latex(dataframe):
     print("\n---------------- LaTeX Code -----------------")
     print(latex_code)
 
+
+def PowerLossAndFlow(line_data, BusList):
+
+    sumActivePowerlossa = 0
+    sumActivePowerlossb = 0
+    sumReactivePowerlossb = 0
+    sumReactivePowerlossa = 0
+
+    PLine_flow = []
+    QLine_flow = []
+
+    for d in (line_data): 
+
+        busa = int(d['From line'])
+        busb = int(d['To line'])
+        Name = f"Line {busa}-{busb}"
+
+        va = float(BusList[busa - 1].voltage_magnitude) 
+        vb = float(BusList[busb - 1].voltage_magnitude) 
+
+        dirac_a = float(BusList[busa - 1].voltage_angle)
+        dirac_b = float(BusList[busb - 1].voltage_angle) 
+
+        Va = cmath.rect(va, dirac_a)
+        Vb = cmath.rect(vb, dirac_b)
+
+        Yc = -1j* float(d['Half Line Charging Admittance'])
+
+        Zr = float(d['R[pu]']) 
+        Zl = 1j*float(d['X[pu]']) 
+
+        Yl = 1/ (Zr + Zl) 
+
+        Iab = Yl * (Va -Vb) + Yc * Va
+        Iba = Yl * (Vb -Va) + Yc * Vb
+
+        Sab = Va * np.conj(Iab)
+        Sba = Vb * np.conj(Iba)
+
+        Pab = Sab.real
+        Pba = Sba.real
+        Qab = Sab.imag
+        Qba = Sba.imag
+
+        sumActivePowerlossa += abs(Pab)
+        sumActivePowerlossb += abs(Pba)
+        sumP = (sumActivePowerlossa - sumActivePowerlossb) * 100
+
+        sumReactivePowerlossa += abs(Qab)
+        sumReactivePowerlossb += abs(Qba)
+        sumQ = (sumReactivePowerlossa - sumReactivePowerlossb) * 100
+
+        PLine_direction = {'Line' : Name,
+                            f'P injected by bus_{busa}': Pab,
+                            f'P injected by bus_{busb}': Pba}
+        
+        PLine_flow.append(PLine_direction)
+
+        QLine_direction = {'Line' : Name,
+                            f'Q injected by bus_{busa}': Qab,
+                            f'Q injected by bus_{busb}': Qba}
+        
+        QLine_flow.append(QLine_direction)
+
+            
+
+    dfPowerflow = pd.DataFrame(PLine_flow)
+    dfPowerflow.set_index('Line', inplace=True)
+    dfPowerflow.fillna(0, inplace=True)
+
+    QdfPowerflow = pd.DataFrame(QLine_flow)
+    QdfPowerflow.set_index('Line', inplace=True)
+    QdfPowerflow.fillna(0, inplace=True)
+
+
+    return sumP, sumQ, dfPowerflow, QdfPowerflow

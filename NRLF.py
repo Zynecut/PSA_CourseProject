@@ -19,7 +19,7 @@ Sbase = 100 # MVA
 Ubase = 230 # kV
 Zbase = (Ubase**2)/Sbase
 max_iterations = 300
-tolerance = 1e-3
+tolerance = 1e-6
 Q_lim = -0.6
 V_lim = -0.1 # take 1 - V_lim for max and 1 - abs(V_lim) for min
 
@@ -81,18 +81,21 @@ def NewtonRaphson(bus_data, line_data, Sbase, max_iterations, tolerance, Q_lim, 
     updateSlackAndPV(BusList=BusList, YBus=YBus, Sbase=Sbase) # Sjekk Qi på PV bus
 
     
-    tap, sump, sumq, flow = Power(line_data, BusList)
+    sump, sumq, flow , Qflow = PowerLossAndFlow(line_data, BusList)
 
     print("\n")
     df_NRLF = makeDataFrame(BusList)
     print("\n")
     print(df_NRLF)
     # print_dataframe_as_latex(df_NRLF)
-    print(tap)
-    print(sump, sumq)
+
+    print("\n")
     print(flow)
-
-
+    print("\n")
+    print(Qflow)
+    print("\n")
+    print(f"Active powerloss = {sump} [MW], Reactive powerloss =  {sumq} [MVAr]")
+    print("\n")
 
     # Calculate line losses 
     # P = I^2 * R       R = r*Zbase
@@ -108,103 +111,9 @@ def NewtonRaphson(bus_data, line_data, Sbase, max_iterations, tolerance, Q_lim, 
     print(test)
     print("--- %s seconds ---" % (time.time() - start_time))
 
-
-    # # Calculate line losses
-
-
-def Power(line_data, BusList):
-
-    sumActivePowerloss = 0
-    sumReactivPowerloss = 0
-
-    Line_losses = []
-    Line_flow = []
-
-    # matrix = np.zeros(len(BusList), len(BusList))
-
-    # for a in range(len(line_data)):
-    #     busa = int(line_data[a]['From line'])
-    #     busb = int(line_data[a]['To line'])
-    #     for b in range(len(BusList)):
-    #         break
-
-            
-
-
-
-    for d in (line_data): 
-        busa = int(d['From line'])
-        busb = int(d['To line'])
-
-
-        Name = f"Line {busa}-{busb}"
-
-        va = float(BusList[busa - 1].voltage_magnitude) 
-        vb = float(BusList[busb - 1].voltage_magnitude) 
-
-        dirac_a = float(BusList[busa - 1].voltage_angle)
-        dirac_b = float(BusList[busb - 1].voltage_angle) 
-
-        Va = cmath.rect(va, dirac_a)
-        Vb = cmath.rect(vb, dirac_b)
-
-        Yc = -1j* float(d['Half Line Charging Admittance'])
-
-        Zr = float(d['R[pu]']) 
-        Zl = 1j*float(d['X[pu]']) 
-
-        Yl = 1/ (Zr + Zl) 
-
-        Iab = Yl * (Va -Vb) + Yc * Va
-        Iba = Yl * (Vb -Va) + Yc * Vb
-
-        Sab = Va * np.conj(Iab)
-        Sba = Vb * np.conj(Iba)
-
-        Pab = Sab.real
-        Pba = Sba.real
-        Qab = Sab.imag
-        Qba = Sba.imag
-
-
-        Ploss = Pab - Pba
-        Qloss = Qab - Qba
-
-        sumActivePowerloss += ( Ploss)
-        sumReactivPowerloss += (Qloss)
-
-        Line_loss = {'Line' : Name,
-                        'Active Powerloss [MW]': Ploss,
-                        'Reactive Powerloss [MVAr]': Qloss}
-
-        Line_losses.append(Line_loss)
-
-
-        Line_direction = {'Line' : Name,
-                            f'Active power  {busa}': Pab,
-                            f'Active power set from Line {busb}': Pba,
-                            f'Reactive power set from Line {busa}': Qab,
-                            f'Reactive power set from Line {busb}': Qba}
-        
-        Line_flow.append(Line_direction)
-
-            
-
-    dfPowerflow = pd.DataFrame(Line_flow)
-    dfPowerflow.set_index('Line', inplace=True)
-    dfLineloss = pd.DataFrame(Line_losses)
-    dfLineloss.set_index('Line', inplace=True)
-
-
-    return dfLineloss, sumActivePowerloss, sumReactivPowerloss, dfPowerflow
-
-
-
-
     """
         If voltage magnitude violation, change (P2, change gen PG2 or load demand PL2, mostly PG2)
     """
-
 
 if __name__ == '__main__':
     NewtonRaphson(bus_data=bus_data, 

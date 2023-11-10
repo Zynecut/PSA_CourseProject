@@ -69,3 +69,8 @@ class Line:
         self.Q_loss = None
         self.current = None
 
+
+def update(self, new_P_loss=None, new_Q_loss=None, new_current=None):
+    if new_P_loss is not None:
+        self.P_loss = new_P_loss
+        
