@@ -3,16 +3,16 @@ import pandas as pd
 
 
 # Given data
-line_data = ReadCsvFile('./files/given_network/network_configuration_line_data.csv')
-bus_data = ReadCsvFile('./files/given_network/network_configuration_bus_data_slack1.csv')
+# line_data = ReadCsvFile('./files/given_network/network_configuration_line_data.csv')
+# bus_data = ReadCsvFile('./files/given_network/network_configuration_bus_data_slack1.csv')
 # bus_data = ReadCsvFile('./files/given_network/network_configuration_bus_data_slack2.csv')
 
 # Test data
 # line_data = ReadCsvFile('./files/test_network/test_line_data.csv')
 # bus_data = ReadCsvFile('./files/test_network/test_bus_data.csv')
 
-# line_data = ReadCsvFile('./files/test_network/network_configuration_line_data_Fellestest.csv')
-# bus_data = ReadCsvFile('./files/test_network/network_configuration_bus_data_Fellestest.csv')
+line_data = ReadCsvFile('./files/test_network/network_configuration_line_data_Fellestest.csv')
+bus_data = ReadCsvFile('./files/test_network/network_configuration_bus_data_Fellestest.csv')
 
 Sbase = 100 # MVA
 Ubase = 230 # kV
@@ -87,6 +87,12 @@ def NewtonRaphson(bus_data, line_data, Sbase, max_iterations, tolerance, Q_lim, 
     df_NRLF = makeDataFrame(BusList)
     print(df_NRLF)
     # print_dataframe_as_latex(df_NRLF)
+    test = df_NRLF["P [pu]"].sum()
+    print(test)
+
+    """
+        If voltage magnitude violation, change (P2, change gen PG2 or load demand PL2, mostly PG2)
+    """
 
 if __name__ == '__main__':
     NewtonRaphson(bus_data=bus_data, 
