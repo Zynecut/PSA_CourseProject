@@ -2,14 +2,14 @@ from functions import *
 import pandas as pd
 
 # standard
-line_data = ReadCsvFile('./files/network_configuration_line_data.csv')
-bus_data = ReadCsvFile('./files/network_configuration_bus_data.csv')
-# line_data = ReadCsvFile('./files/test_line_data.csv')
-# bus_data = ReadCsvFile('./files/test_bus_data.csv')
+line_data = ReadCsvFile('./files/given_network/network_configuration_line_data.csv')
+bus_data = ReadCsvFile('./files/given_network/network_configuration_bus_data_slack1.csv')
 Sbase = 100 # MVA
 Ubase = 230 # kV
 max_iterations = 100
 tolerance = 0.001
+Q_lim = -0.6
+V_lim = -0.1 # take 1 - V_lim for max and 1 - abs(V_lim) for min
 
 def iterateDLF(BusList, YBus, P_spec, Q_spec, v_guess, dirac_guess, max_iterations, tolerance):
     """
@@ -40,7 +40,7 @@ def iterateDLF(BusList, YBus, P_spec, Q_spec, v_guess, dirac_guess, max_iteratio
     return delta_u, delta_x, k
 
 
-def DLF():
+def DLF(bus_data, line_data, Sbase, max_iterations, tolerance, Q_lim, V_lim):
     """
         delta_u is known values - ΔP, ΔQ
         delta_x is unknown values - Δδ, Δ|v|
@@ -60,9 +60,19 @@ def DLF():
                                      max_iterations= max_iterations, 
                                      tolerance= tolerance
                                      ) 
-    print(k, "\n\n" ,delta_u, "\n\n", delta_x, "\n\n")
+    print(f"The method converged after {k} iterations!\n")
     updateSlackAndPV(BusList=BusList, YBus=YBus, Sbase=Sbase) # Sjekk Qi på PV bus
+
+    df_NRLF = makeDataFrame(BusList)
+    print(df_NRLF)
 
 
 if __name__ == '__main__':
-    DLF()
+    DLF(bus_data=bus_data, 
+        line_data=line_data, 
+        Sbase=Sbase, 
+        max_iterations=max_iterations, 
+        tolerance=tolerance, 
+        Q_lim=Q_lim,
+        V_lim=V_lim
+        )

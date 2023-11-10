@@ -1,5 +1,12 @@
 class Bus:
+    """
+        This class defines the bus object with information that goes into each bus. 
+    """
     def __init__(self, bus_id, voltage_magnitude, voltage_angle, P_gen, Q_gen, P_load, Q_load, BusType, Sbase):
+        """
+            Initialization of variables for each object.
+            As there can be times when value in input data is '-', it is fixed to None here.
+        """
         self.bus_id = int(bus_id)
         self.voltage_magnitude = float(voltage_magnitude)
         self.voltage_angle = float(voltage_angle)
@@ -23,12 +30,18 @@ class Bus:
     
 
     def update_bus_voltage(self, new_voltage_magnitude=None, new_voltage_angle=None):
+        """
+            Updates bus voltages and/or bus angles.
+        """
         if new_voltage_magnitude is not None:
             self.voltage_magnitude = new_voltage_magnitude
         if new_voltage_angle is not None:
             self.voltage_angle = new_voltage_angle
 
     def update_Pi_Qi(self, P_spec=None, Q_spec=None, P_gen=None, Q_gen=None):
+        """
+            Updates values if it is applied.
+        """
         if P_spec is not None:
             self.P_specified = P_spec
         if Q_spec is not None:
@@ -39,4 +52,20 @@ class Bus:
             self.Q_gen = Q_gen
 
     def typeSwitch(self, new_BusType):
+        """
+            Updates BusType if it is type switched.
+        """
         self.BusType = new_BusType
+
+
+class Line:
+    def __init__(self, from_line, to_line, R_pu, X_pu, half_line_adm):
+        self.from_line = int(from_line)
+        self.to_line = int(to_line)
+        self.R_pu = float(R_pu)
+        self.X_pu = float(X_pu)
+        self.half_line_adm = float(half_line_adm)
+        self.P_loss = None
+        self.Q_loss = None
+        self.current = None
+
