@@ -81,8 +81,10 @@ def NewtonRaphson(bus_data, line_data, Sbase, max_iterations, tolerance, Q_lim, 
     updateSlackAndPV(BusList=BusList, YBus=YBus, Sbase=Sbase) # Sjekk Qi på PV bus
 
     
-    sump, sumq, flow , Qflow = PowerLossAndFlow(line_data, BusList)
+    sump, sumq, flow = PowerLossAndFlow(line_data, BusList, Sbase)
 
+
+    flow2 = flow.to_latex()
     print("\n")
     df_NRLF = makeDataFrame(BusList)
     print("\n")
@@ -92,7 +94,9 @@ def NewtonRaphson(bus_data, line_data, Sbase, max_iterations, tolerance, Q_lim, 
     print("\n")
     print(flow)
     print("\n")
-    print(Qflow)
+    print(flow2)
+    print("\n")
+    # print(Qflow)
     print("\n")
     print(f"Active powerloss = {sump} [MW], Reactive powerloss =  {sumq} [MVAr]")
     print("\n")
