@@ -1,139 +1,114 @@
 # course_project_PSA
 Code for the course project in Power System Analysis (TET4205)
 
-
-### Specify format for excel inputs.
-The code inputs csv files, so make sure to save your data files for bus data and line data as TWO seperate .csv files.
-The reason for csv, is that we try to avoid using the pandas library, as it is annoying to debug when pandas gives you 4 million lines of uselessness in the debugger.
+### Specify format for excel inputs
+The code inputs CSV files, so make sure to save your data files for bus data and line data as TWO separate .csv files. We use CSV to avoid utilizing the pandas library, as it can complicate debugging with excessive output.
 
 ## How to navigate code
 ## How to download and run
 
+### Avoid committing all files, such as venv.
+.gitignore ensures that specified files inside the file are not committed.
 
-### Unngår å commite alle filer, som venv.
-.gitignore sørger for at det som er spesifisert inne i filen ikke blir commited
-
-### Hvordan clone fra github!
-kopier linken
-```https://github.com/Zynecut/PSA_CourseProject.git```
-i cmd, beveg deg til der du vil legge filen, gjerne under:
-```C:\Users\dittPCnavn\dinmappe```
-Når du da er inne i dinmappe, skriver du:
-```git clone https://github.com/Zynecut/PSA_CourseProject.git```
-da blir den clonet til dinmappe.
-
-
-### Hvordan lage virtual envirement 
-Dette er noe du burde ha lokalt i din egen mappe. Som du kanskje har sett 
-```python -m venv venv```
-For å gå inn i venv
-```venv\Scripts\activate.bat```
-For å gå ut av venv
-```venv\Scripts\deactivate.bat```
-Disse funksjonene går ut ifra at du bruker terminalen cmd, da de er litt annerledes i Powershell eller de andre.
-
-
-### Hvordan installere alle libraries du trenger
-Her vises hvordan du kan installere alle libraries du trenger for dette prosjektet. 
+### How to clone from GitHub!
+Copy the link `https://github.com/Zynecut/PSA_CourseProject.git` to your clipboard. In the command line, navigate to your desired location, e.g., `C:\Users\yourPCname\yourfolder`. Once in your folder, execute:
+```bash
+git clone https://github.com/Zynecut/PSA_CourseProject.git
 ```
+This will clone the repository into your folder.
+
+### How to create a virtual environment
+This is something you should have locally in your own folder:
+```bash
+python -m venv venv
+```
+To activate the virtual environment:
+```bash
+venv\Scripts\activate.bat
+```
+To deactivate the virtual environment:
+```bash
+venv\Scripts\deactivate.bat
+```
+These commands assume the use of the cmd terminal; syntax may vary for PowerShell or other terminals.
+
+### How to install all required libraries
+Here's how you can install all the libraries needed for this project:
+```bash
 pip install -r requirements.txt
 ```
 
-
-### Hvordan pushe til github:
-Skriv i commandline:
-```
+### How to push to GitHub
+In the command line:
+```bash
 git add .
-git commit -m "Skriv her hva du endret"
+git commit -m "Describe your changes here"
 git push
 ```
-Du vil ikke pushe til main branch, men til egen branch. Derfor er det viktig at du sjekker hvilken branch du er i.
-```
-git checkout branch_name    "Change branch"
+Remember not to push to the main branch but to your own branch. Verify your current branch using:
+```bash
+git checkout branch_name    # Change branch
 ```
 
+### How to pull changes made by others
+Run `git pull` to fetch changes from the repository and update your local code. `Git pull` combines `git fetch` and `git merge`. If you encounter a merge conflict you can't resolve or decide to abort, use `git merge --abort` to return the branch to its state before pulling.
 
-### Hvordan hente ut endringer gjort av andre
-Skriv ```git pull``` for å hente ut endringer i repository, for å oppdatere din lokale kode.
-Git pull er en kombinasjon av ```git fetch og git merge```. Hvis du får en merge konflikt du ikke kan løse, eller hvis du bestemmer deg for å avslutte sammenslåingen, kan du bruke ```git merge --abort``` for å ta grenen tilbake til der den var i før du pulled.
-
-### Git pull fra en branch i github til lokal branch
-Her vil du altså bytte ut {github_branch} med den branchen du vil hente koden fra. Så bytter du {lokal_branch} med navnet på din lokale branch.
+### Git pull from a branch in GitHub to a local branch
+Replace `{github_branch}` with the branch you want to pull from and `{local_branch}` with your local branch name.
+```bash
+git pull origin {github_branch}:{local_branch}
 ```
-git pull origin {github_branch}:{lokal_branch}
-``` 
 
-### Some basic Git commands are:
-```
+### Some basic Git commands
+```bash
 git status
 git add
 git commit
 git push
 ```
 
-### Hvis du commiter "venv", fjern det ved å skrive:
-```
+### If you accidentally commit "venv," remove it by running:
+```bash
 git rm -r --cached venv/ -f
 ```
-I command line, venv/ er det du fjerner her, for så å pushe til github på nytt.
+In the command line, `venv/` is what you're removing, then push to GitHub again.
 
-### Husk å legge til jupityr extension i venv (Vårt environment):
+### Remember to add the Jupyter extension in the venv (our environment)
 
-
-##
+## Cancelling a Commit in Git
 To cancel a commit in Git, you can use several methods depending on the situation. Here are some common scenarios and how to cancel commits in each case:
 
-Cancel the Last Commit (Local Only):
-If you want to cancel the most recent commit without affecting the remote repository, you can use the git reset command with the --soft or --mixed option.
+1. Cancel the Last Commit (Local Only):
+   - To cancel the commit but keep the changes in your working directory:
+     ```bash
+     git reset --soft HEAD~1
+     ```
+   - To cancel the commit and unstage the changes:
+     ```bash
+     git reset --mixed HEAD~1
+     ```
 
-To cancel the commit but keep the changes in your working directory, you can use:
+2. Cancel a Commit and Discard Changes (Local Only):
+   - To completely discard both the commit and the changes:
+     ```bash
+     git reset --hard HEAD~1
+     ```
+   Be cautious, as this permanently discards the changes.
 
-css
-Copy code
+3. Cancel a Commit and Create a New One:
+   - To cancel a commit and create a new one with different changes:
+     ```bash
+     git reset --hard HEAD~2
+     ```
+
+4. Cancel a Commit and Push Changes (Remote Repository):
+   - If you've pushed the commit to a remote repository, use `git revert`:
+     ```bash
+     git revert <commit-hash>
+     ```
+   Then, push the new commit to the remote repository.
+
+Remember to replace `<commit-hash>` with the actual hash of the commit you want to cancel. Exercise caution when canceling commits, especially in a shared repository.
 ```
-git reset --soft HEAD~1
-```
-To cancel the commit and unstage the changes, you can use:
 
-css
-Copy code
-```
-git reset --mixed HEAD~1
-```
-After executing one of these commands, the last commit will be removed, and the changes will be either in your working directory or staged for a new commit.
-
-Cancel a Commit and Discard Changes (Local Only):
-If you want to completely discard both the commit and the changes, you can use the git reset command with the --hard option. Be cautious when using this, as it permanently discards the changes.
-
-css
-Copy code
-```
-git reset --hard HEAD~1
-```
-This will remove the last commit and all changes associated with it.
-
-Cancel a Commit and Create a New One:
-If you want to cancel a commit and create a new one with different changes, you can use git reset to reset the branch and then make new commits with the desired changes.
-
-For example, if you want to cancel the last two commits and start fresh:
-
-css
-Copy code
-```
-git reset --hard HEAD~2
-```
-Cancel a Commit and Push Changes (Remote Repository):
-If you've already pushed the commit to a remote repository and want to cancel it, you should not use git reset as it can lead to issues in a shared environment. Instead, you can create a new commit that undoes the changes made in the commit you want to cancel.
-
-First, use git revert to create a new commit that undoes the changes:
-
-php
-Copy code
-```
-git revert <commit-hash>
-```
-Then, push the new commit to the remote repository to effectively cancel the previous commit.
-
-Remember to replace <commit-hash> with the actual hash of the commit you want to cancel.
-
-It's important to exercise caution when canceling commits, especially in a shared repository, as it can affect others working on the project. Always communicate with your team when making significant changes to the commit history.
+These adjustments aim to improve readability and maintain a consistent style throughout the document. Feel free to customize further based on your preferences.
