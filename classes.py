@@ -8,8 +8,8 @@ class Bus:
             As there can be times when value in input data is '-', it is fixed to None here.
         """
         self.bus_id = int(bus_id)
-        self.voltage_magnitude = float(voltage_magnitude)
-        self.voltage_angle = float(voltage_angle)
+        self.voltage_magnitude = float(voltage_magnitude) if voltage_magnitude != '-' else float(1)
+        self.voltage_angle = float(voltage_angle) if voltage_angle != '-' else float(0)
         self.P_gen = float(P_gen)/Sbase if P_gen != '-' else None
         self.Q_gen = float(Q_gen)/Sbase if Q_gen != '-' else None
         self.P_load = float(P_load)/Sbase if P_load != '-' else None
@@ -70,7 +70,11 @@ class Line:
         self.current = None
 
 
-def update(self, new_P_loss=None, new_Q_loss=None, new_current=None):
-    if new_P_loss is not None:
-        self.P_loss = new_P_loss
+    def update(self, new_P_loss=None, new_Q_loss=None, new_current=None):
+        if new_P_loss is not None:
+            self.P_loss = new_P_loss
+        if new_Q_loss is not None:
+            self.Q_loss = new_Q_loss
+        if new_current is not None:
+            self.current = new_current
         

@@ -18,67 +18,41 @@ def DCPF(bus_data, line_data, Sbase):
     bus_overview = setupBusType(bus_data)
     P_spec, Q_spec = findKnowns(bus_data, Sbase)
 
-    df_ybus = pd.DataFrame(YBus)
+    # df_ybus = pd.DataFrame(YBus)
 
-    slack_bus_info = findSlackBusType(bus_overview)
+    # slack_bus_info = findSlackBusType(bus_overview)
 
-    index_to_remove = slack_bus_info -1
+    # index_to_remove = slack_bus_info -1
 
-    removeSlackElementYBus = np.delete(YBus, index_to_remove, axis=0)  # Remove the row
-    removeSlackElementYBus = np.delete(removeSlackElementYBus, index_to_remove, axis=1)  # Remove the column
-    df_removeslackElementYbus = pd.DataFrame(removeSlackElementYBus)
-    pd.set_option('display.max_columns', None)
+    # removeSlackElementYBus = np.delete(YBus, index_to_remove, axis=0)  # Remove the row
+    # removeSlackElementYBus = np.delete(removeSlackElementYBus, index_to_remove, axis=1)  # Remove the column
+    # df_removeslackElementYbus = pd.DataFrame(removeSlackElementYBus)
+    # pd.set_option('display.max_columns', None)
     
-    df_Ydc = df_removeslackElementYbus.apply(lambda x: x.apply(lambda val: val.imag)) #create new DataFrame with only the imaginary part
+    # df_Ydc = df_removeslackElementYbus.apply(lambda x: x.apply(lambda val: val.imag)) #create new DataFrame with only the imaginary part
 
-    df_Ydc_neg = df_Ydc * -1   #Negative of imaginary part
+    # df_Ydc_neg = df_Ydc * -1   #Negative of imaginary part
 
     # New shit bruv
     YBus_DC = YBusDC(BusList, YBus)
 
     print(YBus_DC)
 
-
-    print(df_Ydc_neg)
-    df_Ydc_inv = np.linalg.inv(df_Ydc_neg) #Inverse of Ydc
+    YBus_DC_inv = np.linalg.inv(YBus_DC) #Inverse of Ydc
     Pvalues = list(P_spec.values())
-    Pmatrix = np.array(Pvalues).reshape(-1, 1)
-    df_Pmatrix = pd.DataFrame(Pmatrix)
-    print(df_Pmatrix)
+    P_arr = np.array(Pvalues).reshape(-1, 1)
 
-    phaseangle = np.dot(df_Ydc_inv, df_Pmatrix)  #Using DCPF to find the phase angles
-    
-    phaseangle_degree = np.degrees(phaseangle) #phase angles in degrees
-    df_phaseangle_degree = pd.DataFrame(phaseangle_degree)
-    print(df_phaseangle_degree)
+    phaseangle = np.dot(YBus_DC_inv, P_arr)  #Using DCPF to find the phase angles
     df_phaseangle = pd.DataFrame(phaseangle)
-    print(df_phaseangle) #Phase angles in rad
+    print(df_phaseangle)
 
-    Ydc_absolute = np.abs(np.imag(df_ybus))
+    Ydc_absolute = np.abs(np.imag(YBus))
     df_Ydc_absolute = pd.DataFrame(Ydc_absolute)
     print(df_Ydc_absolute)
 
-
-    # index = 1
-    # col = 0
-    # cell_val = df_Ydc_absolute[index][col]
-    # print(cell_val)
-
-    # index = 0  #skal alltid være 0
-    # col = 0  #skal være lik col til cell_val
-    # cell_val2 = df_phaseangle[index][col]
-    # print(cell_val2)
-
-    # index = 0 #skal alltid være null
-    # col = 1 #skal være lik index til cell_val
-    # cell_val3 = df_phaseangle[index][col]
-    # print(cell_val3)
-
-    # real_power_12 = cell_val * (cell_val2 - cell_val3 )*Sbase
-    # print('P1-2 = ', real_power_12)
-
    
     result_df = pd.DataFrame(columns=df_Ydc_absolute.columns, index=df_Ydc_absolute.index)
+    
     k = 0
     for rad in range(df_Ydc_absolute.shape[1]):
         #print(df_Ydc_absolute[kolonne])
@@ -90,6 +64,8 @@ def DCPF(bus_data, line_data, Sbase):
             k += 1
             if k > df_phaseangle.shape[1]:
                 k = 0
+                
+    result_df.fillna(0, inplace=True)
     print(result_df)            
 
 
