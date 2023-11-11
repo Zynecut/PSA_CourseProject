@@ -1,5 +1,6 @@
 from functions import *
 import pandas as pd
+import time
 
 # standard
 line_data = ReadCsvFile('./files/given_network/network_configuration_line_data.csv')
@@ -45,6 +46,7 @@ def DLF(bus_data, line_data, Sbase, max_iterations, tolerance, Q_lim, V_lim):
         delta_u is known values - ΔP, ΔQ
         delta_x is unknown values - Δδ, Δ|v|
     """
+    start_time = time.time()
     num_buses = len(bus_data)
     YBus = BuildYbusMatrix(line_data, num_buses)
     bus_overview = setupBusType(bus_data)
@@ -60,12 +62,17 @@ def DLF(bus_data, line_data, Sbase, max_iterations, tolerance, Q_lim, V_lim):
                                      max_iterations= max_iterations, 
                                      tolerance= tolerance
                                      ) 
-    print(f"The method converged after {k} iterations!\n")
+    
     updateSlackAndPV(BusList=BusList, YBus=YBus, Sbase=Sbase) # Sjekk Qi på PV bus
 
-    df_NRLF = makeDataFrame(BusList)
-    print(df_NRLF)
-
+    sump, sumq, flow , Qflow = PowerLossAndFlow(line_data, BusList)
+    df_DLF = makeDataFrame(BusList, Sbase, Ubase)
+    # print_dataframe_as_latex(df_DLF)
+    print("\n")
+    print(df_DLF)
+    print(f"The method converged after {k} iterations!\n")
+    print(f"Active powerloss = {round(sump,3)} [MW], Reactive powerloss =  {round(sumq,3)} [MVAr]\n")
+    print("--- %s seconds ---" % (time.time() - start_time))
 
 if __name__ == '__main__':
     DLF(bus_data=bus_data, 

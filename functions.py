@@ -3,7 +3,6 @@ import re
 import csv
 import numpy as np
 import pandas as pd
-import jinja2
 
 from classes import *
 
@@ -31,7 +30,7 @@ def ReadCsvFile(file):
         print(f"An error occurred: {e}")
         return None
 
-def setupLineAdmittanceList(line_dict):
+def setupLineAdmittanceList(line_dict, tap=None, phase=None):
     """
         Setup Cutsem's algorithm, with 2x2 y-buses between each line.
 
@@ -42,27 +41,49 @@ def setupLineAdmittanceList(line_dict):
         - x (list): list of admittances in 2x2 ybus on a line.
 
         Note:
-        - If tap changing or phase shifting transformers are to be implemented, a way to do this is to have an if statement,
-        that can check type of transformer between buses. 
-        If tap changing:
-            x.append(y11/a^2)
-            and so on.
-        elif phase shifting:
-            x.append(y11/(a+jb)^2)
-        else:
-            x.append(y11)
+        - Tap changing and phase shifting transformer is added to function. All that is needed is to implement it
+          in the input file.
     """
-    x = []
-    impedance = complex(float(line_dict['R[pu]']), float(line_dict['X[pu]']))
-    half_line_charging_admittance = complex(0, float(line_dict['Half Line Charging Admittance']))
-    y_pq = complex(1 / impedance)
-    x.append(int(line_dict['From line']))
-    x.append(int(line_dict['To line']))
-    x.append(y_pq + half_line_charging_admittance) #y11
-    x.append(-y_pq) #y12
-    x.append(-y_pq) #y21
-    x.append(y_pq + half_line_charging_admittance) #y22
-    return x
+    if tap is not None:
+        # tap = a , line_dict['Tap']
+        x = []
+        impedance = complex(float(line_dict['R[pu]']), float(line_dict['X[pu]']))
+        half_line_charging_admittance = complex(0, float(line_dict['Half Line Charging Admittance']))
+        y_pq = complex(1 / impedance)
+        x.append(int(line_dict['From line']))
+        x.append(int(line_dict['To line']))
+        x.append((y_pq + half_line_charging_admittance)/tap**2) #y11
+        x.append(-y_pq/tap) #y12
+        x.append(-y_pq/tap) #y21
+        x.append(y_pq + half_line_charging_admittance) #y22
+        return x
+    elif phase is not None:
+        # phase = a + jb, line_dict['phase']
+        phase_a = phase.real
+        phase_b = phase.imag
+        x = []
+        impedance = complex(float(line_dict['R[pu]']), float(line_dict['X[pu]']))
+        half_line_charging_admittance = complex(0, float(line_dict['Half Line Charging Admittance']))
+        y_pq = complex(1 / impedance)
+        x.append(int(line_dict['From line']))
+        x.append(int(line_dict['To line']))
+        x.append((y_pq + half_line_charging_admittance)/complex(phase_a**2, phase_b**2)) #y11
+        x.append(-y_pq/complex(phase_a, -phase_b)) #y12
+        x.append(-y_pq/complex(phase_a, phase_b)) #y21
+        x.append(y_pq + half_line_charging_admittance) #y22
+        return x
+    else:
+        x = []
+        impedance = complex(float(line_dict['R[pu]']), float(line_dict['X[pu]']))
+        half_line_charging_admittance = complex(0, float(line_dict['Half Line Charging Admittance']))
+        y_pq = complex(1 / impedance)
+        x.append(int(line_dict['From line']))
+        x.append(int(line_dict['To line']))
+        x.append(y_pq + half_line_charging_admittance) #y11
+        x.append(-y_pq) #y12
+        x.append(-y_pq) #y21
+        x.append(y_pq + half_line_charging_admittance) #y22
+        return x
 
 def setupBusList(bus_dict, bus_type, Sbase):
     """
@@ -119,17 +140,16 @@ def setupLineList(line_dict):
     )
     return line
 
-
 def buildLineList(line_data):
     LineList = []
     for element in line_data:
         LineList.append(setupLineList(element))
     return LineList
 
-
 def BuildYbusMatrix(line_data, num_buses):
     """
         Construct YBus Matrix for an N-bus system
+        Tap changing and phase shifting transformer data can be added if needed. 
 
         Parameters: 
         - line_data (list(dict)): data from each line in the system.
@@ -137,7 +157,7 @@ def BuildYbusMatrix(line_data, num_buses):
     """
     line_adm = []
     for element in line_data:
-        line_adm.append(setupLineAdmittanceList(element))
+        line_adm.append(setupLineAdmittanceList(line_dict=element, tap=None, phase=None))
 
     Y_bus = np.zeros((num_buses,num_buses), dtype=complex)
     for i in range(1, num_buses + 1):
@@ -773,11 +793,12 @@ def checkTypeSwitch(BusList, YBus, Q_spec, v_guess, Q_lim, V_lim):
                 theta_in = Y_in_polar[1]
                 Qi -= abs(v_i*v_n*Y_in)*math.sin(theta_in + dirac_n - dirac_i)
 
+
             if Q_lim < Qi < abs(Q_lim):
                 continue
             elif Qi >= abs(Q_lim):
                 Qi = abs(Q_lim)
-                BusList[i].typeSwitch("PQ")
+                BusList[i].typeSwitch("PQ_ts")
                 BusList[i].update_Pi_Qi(Q_spec=Qi, Q_gen= (Qi - BusList[i].Q_load))
 
                 # Update Q_spec
@@ -800,7 +821,7 @@ def checkTypeSwitch(BusList, YBus, Q_spec, v_guess, Q_lim, V_lim):
 
             else:
                 Qi = Q_lim
-                BusList[i].typeSwitch("PQ")
+                BusList[i].typeSwitch("PQ_ts")
                 BusList[i].update_Pi_Qi(Q_spec=Qi, Q_gen= (Qi - BusList[i].Q_load))
 
                 # Update Q_spec
@@ -820,6 +841,8 @@ def checkTypeSwitch(BusList, YBus, Q_spec, v_guess, Q_lim, V_lim):
                 for k in v_guess:
                     v_guess_temp[k] = v_guess[k]
                 v_guess = v_guess_temp
+        # elif BusList[i].BusType == 'PQ_ts':
+
 
     return Q_spec, v_guess
     
@@ -1040,8 +1063,7 @@ def YBusDC(BusList, YBus):
             YBus_DC = YBus_DC.imag * (-1)
     return YBus_DC
 
-
-def makeDataFrame(BusList):
+def makeDataFrame(BusList, Sbase, Ubase):
     """
         Function to make BusList into a DataFrame
 
@@ -1051,15 +1073,16 @@ def makeDataFrame(BusList):
         Returns:
         - df_NRLF (DataFrame)
     """
+    
     data_to_add = []
     for i in range(len(BusList)):
         dict_NRLF = {
             'Bus': BusList[i].bus_id,
             'Type': BusList[i].BusType,
-            'Voltage [pu]': BusList[i].voltage_magnitude,
-            'Angle [deg]': (180/math.pi)*BusList[i].voltage_angle,
-            'P [pu]': BusList[i].P_specified,
-            'Q [pu]': BusList[i].Q_specified
+            'Voltage [pu]': round(BusList[i].voltage_magnitude * Ubase, 3),
+            'Angle [deg]': round((180/math.pi)*BusList[i].voltage_angle, 3),
+            'P [pu]': round(BusList[i].P_specified * Sbase, 3),
+            'Q [pu]': round(BusList[i].Q_specified * Sbase, 3)
         }
         data_to_add.append(dict_NRLF)
     df_NRLF = pd.DataFrame(data_to_add)
@@ -1097,8 +1120,8 @@ def print_dataframe_as_latex(dataframe):
     print(latex_code)
 
 
-def PowerLossAndFlow(line_data, BusList, Sbase):
 
+def PowerLossAndFlow(line_data, BusList, Sbase):
     sumP = 0
     sumQ = 0
     PLine_flow = []
@@ -1160,4 +1183,6 @@ def PowerLossAndFlow(line_data, BusList, Sbase):
     sumP = round(sumP,3)
     sumQ = round(sumQ,3)
 
+
     return sumP, sumQ, dfPowerflow
+
