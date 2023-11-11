@@ -1119,15 +1119,12 @@ def print_dataframe_as_latex(dataframe):
     print("\n---------------- LaTeX Code -----------------")
     print(latex_code)
 
-def PowerLossAndFlow(line_data, BusList):
 
-    sumActivePowerlossa = 0
-    sumActivePowerlossb = 0
-    sumReactivePowerlossb = 0
-    sumReactivePowerlossa = 0
 
+def PowerLossAndFlow(line_data, BusList, Sbase):
+    sumP = 0
+    sumQ = 0
     PLine_flow = []
-    QLine_flow = []
 
     for d in (line_data): 
 
@@ -1144,12 +1141,12 @@ def PowerLossAndFlow(line_data, BusList):
         Va = cmath.rect(va, dirac_a)
         Vb = cmath.rect(vb, dirac_b)
 
-        Yc = -1j* float(d['Half Line Charging Admittance'])
+        Yc = 1j* float(d['Half Line Charging Admittance'])
 
         Zr = float(d['R[pu]']) 
-        Zl = 1j*float(d['X[pu]']) 
+        Zx = 1j*float(d['X[pu]']) 
 
-        Yl = 1/ (Zr + Zl) 
+        Yl = 1 / (Zr + Zx) 
 
         Iab = Yl * (Va -Vb) + Yc * Va
         Iba = Yl * (Vb -Va) + Yc * Vb
@@ -1162,35 +1159,30 @@ def PowerLossAndFlow(line_data, BusList):
         Qab = Sab.imag
         Qba = Sba.imag
 
-        sumActivePowerlossa += abs(Pab)
-        sumActivePowerlossb += abs(Pba)
-        sumP = (sumActivePowerlossa - sumActivePowerlossb) * 100
+        Pab = (Pab * Sbase)
+        Pba = (Pba * Sbase)
+        Qab = (Qab * Sbase)
+        Qba = (Qba * Sbase)
 
-        sumReactivePowerlossa += abs(Qab)
-        sumReactivePowerlossb += abs(Qba)
-        sumQ = (sumReactivePowerlossa - sumReactivePowerlossb) * 100
+        sumP += (abs(Pab) - abs(Pba))
+        sumQ += (abs(Qab) - abs(Qba))
 
-        PLine_direction = {'Line' : Name,
-                            f'P injected by bus_{busa}': Pab,
-                            f'P injected by bus_{busb}': Pba}
-        
+        PLine_direction = {'From bus' : busa,
+                            'To bus': busb,
+                            'P ij[MW]' : round(Pab,3),
+                            'Q ij[MVAr]' : round(Qab, 3),
+                            'P ji[MW]' : round(Pba,3),
+                            'Q ji[MVAr]' : round(Qba,3),
+                            'P Loss[MW]' : round(abs(Pab) - abs(Pba),3),
+                            'Q Loss[MVAR]' : round(abs(Qab)- abs(Qba),3)}
+                    
         PLine_flow.append(PLine_direction)
-
-        QLine_direction = {'Line' : Name,
-                            f'Q injected by bus_{busa}': Qab,
-                            f'Q injected by bus_{busb}': Qba}
-        
-        QLine_flow.append(QLine_direction)
-
             
-
     dfPowerflow = pd.DataFrame(PLine_flow)
-    dfPowerflow.set_index('Line', inplace=True)
-    dfPowerflow.fillna(0, inplace=True)
 
-    QdfPowerflow = pd.DataFrame(QLine_flow)
-    QdfPowerflow.set_index('Line', inplace=True)
-    QdfPowerflow.fillna(0, inplace=True)
+    sumP = round(sumP,3)
+    sumQ = round(sumQ,3)
 
 
-    return sumP, sumQ, dfPowerflow, QdfPowerflow
+    return sumP, sumQ, dfPowerflow
+
