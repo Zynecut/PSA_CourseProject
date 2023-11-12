@@ -38,14 +38,14 @@ class Bus:
         if new_voltage_angle is not None:
             self.voltage_angle = new_voltage_angle
 
-    def update_Pi_Qi(self, P_spec=None, Q_spec=None, P_gen=None, Q_gen=None):
+    def update_Pi_Qi(self, P_specified=None, Q_specified=None, P_gen=None, Q_gen=None):
         """
             Updates values if it is applied.
         """
-        if P_spec is not None:
-            self.P_specified = P_spec
-        if Q_spec is not None:
-            self.Q_specified = Q_spec
+        if P_specified is not None:
+            self.P_specified = P_specified
+        if Q_specified is not None:
+            self.Q_specified = Q_specified
         if P_gen is not None:
             self.P_gen = P_gen
         if Q_gen is not None:

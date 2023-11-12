@@ -77,14 +77,21 @@ def FDLF(bus_data, line_data, Sbase, max_iterations, tolerance):
                     B_double_prime= B_double_prime_inv
                     )
     updateSlackAndPV(BusList=BusList, YBus=YBus, Sbase=Sbase) # Sjekk Qi på PV bus
-    
-    sump, sumq, flow , Qflow = PowerLossAndFlow(line_data, BusList)
+
+    sump, sumq, flow, S_I_injections= PowerLossAndFlow(line_data, BusList, Sbase, Ubase)
     df_FDLF = makeDataFrame(BusList, Sbase, Ubase)
-    # print_dataframe_as_latex(df_FDLF)
+    FDLF = df_FDLF.to_latex()
+    print(FDLF)
     print("\n")
-    print(df_FDLF)
-    print(f"The method converged after {k} iterations!\n")
-    print(f"Active powerloss = {round(sump,3)} [MW], Reactive powerloss =  {round(sumq,3)} [MVAr]\n")
+    flow2 = flow.to_latex()
+    print(flow2)
+    print("\n")
+    S_I = S_I_injections.to_latex()
+    print(S_I)
+    print("\n")
+    print(f"Active loss: {round(df_FDLF['P [pu]'].sum(),3)}, Reactive loss: {round(df_FDLF['Q [pu]'].sum(),3)}")
+    print(f"The method converged after {k} iterations!")
+    print(f"Active powerloss = {round(sump,3)} [MW], Reactive powerloss =  {round(sumq,3)} [MVAr]")
     print("--- %s seconds ---" % (time.time() - start_time))
 
 
