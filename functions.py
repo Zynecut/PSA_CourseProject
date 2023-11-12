@@ -734,7 +734,7 @@ def updateVoltageAndAngleList(delta_x, dirac_guess, v_guess):
         else:
             v_start +=1
 
-def updateBusList(BusList, dirac_guess, v_guess):
+def updateBusList(BusList, dirac_guess=None, v_guess=None):
     """
         Update the |V| and δ for the specified buses.
 
@@ -746,21 +746,23 @@ def updateBusList(BusList, dirac_guess, v_guess):
         Returns:
         - BusList with updated voltages and angles.
     """
-    for bus_id in v_guess:
-        v_num = extract_number(bus_id)
-        for i in range(len(BusList)):
-            if v_num == BusList[i].bus_id:
-                BusList[i].update_bus_voltage(new_voltage_magnitude=v_guess[bus_id])
-            else:
-                continue
+    if v_guess is not None:
+        for bus_id in v_guess:
+            v_num = extract_number(bus_id)
+            for i in range(len(BusList)):
+                if v_num == BusList[i].bus_id:
+                    BusList[i].update_bus_voltage(new_voltage_magnitude=v_guess[bus_id])
+                else:
+                    continue
 
-    for bus_id in dirac_guess:
-        dirac_num = extract_number(bus_id)
-        for i in range(len(BusList)):
-            if dirac_num == BusList[i].bus_id:
-                BusList[i].update_bus_voltage(new_voltage_angle=dirac_guess[bus_id])
-            else:
-                continue
+    if dirac_guess is not None:
+        for bus_id in dirac_guess:
+            dirac_num = extract_number(bus_id)
+            for i in range(len(BusList)):
+                if dirac_num == BusList[i].bus_id:
+                    BusList[i].update_bus_voltage(new_voltage_angle=dirac_guess[bus_id])
+                else:
+                    continue
 
 def checkTypeSwitch(BusList, YBus, Q_spec, v_guess, Q_lim, V_lim):
     """
@@ -792,20 +794,21 @@ def checkTypeSwitch(BusList, YBus, Q_spec, v_guess, Q_lim, V_lim):
                 Y_in = Y_in_polar[0]
                 theta_in = Y_in_polar[1]
                 Qi -= abs(v_i*v_n*Y_in)*math.sin(theta_in + dirac_n - dirac_i)
+                
+            gen = Qi - BusList[i].Q_load
 
-
-            if Q_lim < Qi < abs(Q_lim):
+            if Q_lim < gen < abs(Q_lim):
                 continue
-            elif Qi >= abs(Q_lim):
-                Qi = abs(Q_lim)
+            elif gen >= abs(Q_lim):
+                gen = abs(Q_lim)
                 BusList[i].typeSwitch("PQ_ts")
-                BusList[i].update_Pi_Qi(Q_spec=Qi, Q_gen= (Qi - BusList[i].Q_load))
+                BusList[i].update_Pi_Qi(Q_specified= gen - BusList[i].Q_load, Q_gen= gen)
 
                 # Update Q_spec
                 key_Q = f"Q_{i+1}"
                 Q_spec_temp = {}
                 if key_Q not in Q_spec:
-                    Q_spec_temp[key_Q] = Qi
+                    Q_spec_temp[key_Q] = BusList[i].Q_specified
                 for k in Q_spec:
                     Q_spec_temp[k] = Q_spec[k]
                 Q_spec = Q_spec_temp
@@ -820,15 +823,15 @@ def checkTypeSwitch(BusList, YBus, Q_spec, v_guess, Q_lim, V_lim):
                 v_guess = v_guess_temp
 
             else:
-                Qi = Q_lim
+                gen = Q_lim
                 BusList[i].typeSwitch("PQ_ts")
-                BusList[i].update_Pi_Qi(Q_spec=Qi, Q_gen= (Qi - BusList[i].Q_load))
+                BusList[i].update_Pi_Qi(Q_specified= gen - BusList[i].Q_load, Q_gen= gen)
 
                 # Update Q_spec
                 key_Q = f"Q_{i+1}"
                 Q_spec_temp = {}
                 if key_Q not in Q_spec:
-                    Q_spec_temp[key_Q] = Qi
+                    Q_spec_temp[key_Q] = BusList[i].Q_specified
                 for k in Q_spec:
                     Q_spec_temp[k] = Q_spec[k]
                 Q_spec = Q_spec_temp
@@ -841,7 +844,28 @@ def checkTypeSwitch(BusList, YBus, Q_spec, v_guess, Q_lim, V_lim):
                 for k in v_guess:
                     v_guess_temp[k] = v_guess[k]
                 v_guess = v_guess_temp
+
         # elif BusList[i].BusType == 'PQ_ts':
+        #     Qi = 0
+        #     gen_old = BusList[i].Q_gen
+        #     v_i = BusList[i].voltage_magnitude
+        #     dirac_i = BusList[i].voltage_angle
+        #     for n in range(len(BusList)):
+        #         v_n = BusList[n].voltage_magnitude
+        #         dirac_n = BusList[n].voltage_angle
+        #         Y_in_polar = cmath.polar(YBus[i][n])
+        #         Y_in = Y_in_polar[0]
+        #         theta_in = Y_in_polar[1]
+        #         Qi -= abs(v_i*v_n*Y_in)*math.sin(theta_in + dirac_n - dirac_i)
+
+        #     gen = Qi - BusList[i].Q_load
+
+        #     if Q_lim < gen < abs(Q_lim):
+        #         BusList[i].typeSwitch("PV")
+        #         BusList[i].update_Pi_Qi(Q_specified= gen - BusList[i].Q_load, Q_gen= gen)
+        #     else:
+        #         continue
+
 
 
     return Q_spec, v_guess
@@ -886,7 +910,7 @@ def updateSlackAndPV(BusList, YBus, Sbase):
                 Y_in = Y_in_polar[0]
                 theta_in = Y_in_polar[1]
                 Pi += abs(v_i*v_n*Y_in)*math.cos(theta_in + dirac_n - dirac_i)
-            BusList[i].update_Pi_Qi(P_spec=Pi, P_gen= (Pi - BusList[i].P_load))
+            BusList[i].update_Pi_Qi(P_specified=Pi, P_gen= (Pi - BusList[i].P_load))
 
             Qi = 0
             for n in range(len(BusList)):
@@ -896,7 +920,7 @@ def updateSlackAndPV(BusList, YBus, Sbase):
                 Y_in = Y_in_polar[0]
                 theta_in = Y_in_polar[1]
                 Qi -= abs(v_i*v_n*Y_in)*math.sin(theta_in + dirac_n - dirac_i)
-            BusList[i].update_Pi_Qi(Q_spec=Qi, Q_gen= (Qi - BusList[i].Q_load))
+            BusList[i].update_Pi_Qi(Q_specified=Qi, Q_gen= (Qi - BusList[i].Q_load))
 
         elif BusList[i].BusType == 'PV':
             Qi = 0
@@ -909,7 +933,7 @@ def updateSlackAndPV(BusList, YBus, Sbase):
                 Y_in = Y_in_polar[0]
                 theta_in = Y_in_polar[1]
                 Qi -= abs(v_i*v_n*Y_in)*math.sin(theta_in + dirac_n - dirac_i)
-            BusList[i].update_Pi_Qi(Q_spec=Qi, Q_gen= (Qi - BusList[i].Q_load))
+            BusList[i].update_Pi_Qi(Q_specified=Qi, Q_gen= (Qi - BusList[i].Q_load))
 
 def calcDecoupledJacobian(BusList, P, Q, v, dirac, YBus):
     """
@@ -1121,10 +1145,12 @@ def print_dataframe_as_latex(dataframe):
 
 
 
-def PowerLossAndFlow(line_data, BusList, Sbase):
+def PowerLossAndFlow(line_data, BusList, Sbase, Ubase):
     sumP = 0
     sumQ = 0
     PLine_flow = []
+    S_I_lsit = []
+    Ibase = (Sbase*1e6)/(Ubase*1e3)
 
     for d in (line_data): 
 
@@ -1150,6 +1176,9 @@ def PowerLossAndFlow(line_data, BusList, Sbase):
 
         Iab = Yl * (Va -Vb) + Yc * Va
         Iba = Yl * (Vb -Va) + Yc * Vb
+        I_line = Yl * (Va-Vb)
+        I_line_polar = cmath.polar(I_line)
+        Q_loss = I_line_polar[0]**2 * float(d['X[pu]']) * Sbase
 
         Sab = Va * np.conj(Iab)
         Sba = Vb * np.conj(Iba)
@@ -1174,15 +1203,33 @@ def PowerLossAndFlow(line_data, BusList, Sbase):
                             'P ji[MW]' : round(Pba,3),
                             'Q ji[MVAr]' : round(Qba,3),
                             'P Loss[MW]' : round(abs(Pab) - abs(Pba),3),
-                            'Q Loss[MVAR]' : round(abs(Qab)- abs(Qba),3)}
-                    
+                            'Q Loss[MVAR]' : round(abs(Qab)- abs(Qba),3)
+                            }
         PLine_flow.append(PLine_direction)
+
+
+        Iab_polar = cmath.polar(Iab)
+        Iba_polar = cmath.polar(Iba)
+
+        S_I = {'From bus' : busa,
+                'To bus': busb,
+                'S_ij [MVA]': Sbase*math.sqrt((Sab.real**2) + (Sab.imag)**2),
+                'I_ij [A]':  Ibase*Iab_polar[0],
+                'S_ji [MVA]': Sbase*math.sqrt((Sba.real**2) + (Sba.imag)**2),
+                'I_ji [A]': Ibase*Iba_polar[0]
+        }
+
+        S_I_lsit.append(S_I)
+                
+
+        
             
     dfPowerflow = pd.DataFrame(PLine_flow)
+    df_S_I = pd.DataFrame(S_I_lsit)
 
     sumP = round(sumP,3)
     sumQ = round(sumQ,3)
 
 
-    return sumP, sumQ, dfPowerflow
+    return sumP, sumQ, dfPowerflow, df_S_I
 

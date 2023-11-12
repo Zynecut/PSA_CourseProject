@@ -24,7 +24,7 @@ Ubase = 230 # kV
 Zbase = (Ubase**2)/Sbase
 max_iterations = 300
 tolerance = 1e-6
-Q_lim = -0.75
+Q_lim = -0.65
 V_lim = -0.1 # take 1 - V_lim for max and 1 - abs(V_lim) for min
 
 def iterateNRLF(BusList, YBus, P_spec, Q_spec, v_guess, dirac_guess, max_iterations, tolerance, Q_lim, V_lim):
@@ -84,25 +84,19 @@ def NewtonRaphson(bus_data, line_data, Sbase, max_iterations, tolerance, Q_lim, 
                     )
 
     updateSlackAndPV(BusList=BusList, YBus=YBus, Sbase=Sbase) # Sjekk Qi på PV bus
-    sump, sumq, flow = PowerLossAndFlow(line_data, BusList, Sbase)
-
-
-    flow2 = flow.to_latex()
-    print("\n")
+    sump, sumq, flow, S_I_injections= PowerLossAndFlow(line_data, BusList, Sbase, Ubase)
     df_NRLF = makeDataFrame(BusList, Sbase, Ubase)
-    print("\n")
-    print(df_NRLF)
-    # print_dataframe_as_latex(df_NRLF)
 
+    NRLF = df_NRLF.to_latex()
+    print(NRLF)
     print("\n")
-    print(flow)
+    S_I = S_I_injections.to_latex()
+    print(S_I)
+    print("\n")
+    flow2 = flow.to_latex()
     print("\n")
     print(flow2)
     print("\n")
-    # print(Qflow)
-
-    print("\n")
-    print(df_NRLF)
     print(f"Active loss: {round(df_NRLF['P [pu]'].sum(),3)}, Reactive loss: {round(df_NRLF['Q [pu]'].sum(),3)}")
     print(f"The method converged after {k} iterations!")
     print(f"Active powerloss = {round(sump,3)} [MW], Reactive powerloss =  {round(sumq,3)} [MVAr]")
