@@ -887,8 +887,9 @@ def checkTypeSwitch(BusList, YBus, Q_spec, v_guess, Q_lim):
                         BusList[i].update_Pi_Qi(Q_specified= gen - BusList[i].Q_load, Q_gen= gen)
                     else:   # Q_lim < gen < abs(Q_lim)
                         BusList[i].typeSwitch("PV")
-                        # BusList[i].update_bus_voltage(new_voltage_magnitude= BusList[i].previous_voltage)
+                        temp = BusList[i].previous_voltage
                         BusList[i].update_bus_voltage(new_previous_voltage= BusList[i].voltage_magnitude)
+                        BusList[i].update_bus_voltage(new_voltage_magnitude= temp)
                         BusList[i].update_Pi_Qi(Q_specified= gen - BusList[i].Q_load, Q_gen= gen)
                         # Update Q_spec
                         key_Q = f"Q_{i+1}"
@@ -911,7 +912,9 @@ def checkTypeSwitch(BusList, YBus, Q_spec, v_guess, Q_lim):
                     else:   # Q_lim < gen < abs(Q_lim)
                         BusList[i].typeSwitch("PV")
                         # BusList[i].update_bus_voltage(new_voltage_magnitude= BusList[i].previous_voltage)
+                        temp = BusList[i].previous_voltage
                         BusList[i].update_bus_voltage(new_previous_voltage= BusList[i].voltage_magnitude)
+                        BusList[i].update_bus_voltage(new_voltage_magnitude= temp)
                         BusList[i].update_Pi_Qi(Q_specified= gen - BusList[i].Q_load, Q_gen= gen)
                         # Update Q_spec
                         key_Q = f"Q_{i+1}"

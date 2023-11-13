@@ -64,22 +64,22 @@ def DCPF(bus_data, line_data, Sbase):
     print(res)
     
 
-    result_df = pd.DataFrame(columns=df_Ydc_absolute.columns, index=df_Ydc_absolute.index)
+    # result_df = pd.DataFrame(columns=df_Ydc_absolute.columns, index=df_Ydc_absolute.index)
     
-    k = 0
-    for rad in range(df_Ydc_absolute.shape[1]):
-        #print(df_Ydc_absolute[kolonne])
-        for kolonne in range(df_Ydc_absolute.shape[0]):
-            tall = df_Ydc_absolute[kolonne][rad]
-            if tall == 0:
-                continue
-            result_df.iloc[rad,kolonne] = tall*(df_phaseangle[0][0]-df_phaseangle[0][k])*Sbase
-            k += 1
-            if k > df_phaseangle.shape[1]:
-                k = 0
+    # k = 0
+    # for rad in range(df_Ydc_absolute.shape[1]):
+    #     #print(df_Ydc_absolute[kolonne])
+    #     for kolonne in range(df_Ydc_absolute.shape[0]):
+    #         tall = df_Ydc_absolute[kolonne][rad]
+    #         if tall == 0:
+    #             continue
+    #         result_df.iloc[rad,kolonne] = tall*(df_phaseangle[0][0]-df_phaseangle[0][k])*Sbase
+    #         k += 1
+    #         if k > df_phaseangle.shape[1]:
+    #             k = 0
                 
-    result_df.fillna(0, inplace=True)
-    print(result_df)
+    # result_df.fillna(0, inplace=True)
+    # print(result_df)
 
     res_df = pd.DataFrame(res)
     rest = res_df.to_latex()
