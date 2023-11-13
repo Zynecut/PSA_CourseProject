@@ -1,5 +1,4 @@
 from functions import *
-import pandas as pd
 import time
 
 # standard
@@ -8,9 +7,7 @@ bus_data = ReadCsvFile('./files/given_network/network_configuration_bus_data_sla
 Sbase = 100 # MVA
 Ubase = 230 # kV
 max_iterations = 100
-tolerance = 0.001
-Q_lim = -0.6
-V_lim = -0.1 # take 1 - V_lim for max and 1 - abs(V_lim) for min
+tolerance = 1e-6
 
 def iterateDLF(BusList, YBus, P_spec, Q_spec, v_guess, dirac_guess, max_iterations, tolerance):
     """
@@ -41,7 +38,7 @@ def iterateDLF(BusList, YBus, P_spec, Q_spec, v_guess, dirac_guess, max_iteratio
     return delta_u, delta_x, k
 
 
-def DLF(bus_data, line_data, Sbase, max_iterations, tolerance, Q_lim, V_lim):
+def DLF(bus_data, line_data, Sbase, max_iterations, tolerance):
     """
         delta_u is known values - ΔP, ΔQ
         delta_x is unknown values - Δδ, Δ|v|
@@ -87,7 +84,5 @@ if __name__ == '__main__':
         line_data=line_data, 
         Sbase=Sbase, 
         max_iterations=max_iterations, 
-        tolerance=tolerance, 
-        Q_lim=Q_lim,
-        V_lim=V_lim
+        tolerance=tolerance
         )

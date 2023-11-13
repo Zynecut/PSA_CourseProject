@@ -764,7 +764,7 @@ def updateBusList(BusList, dirac_guess=None, v_guess=None):
                 else:
                     continue
 
-def checkTypeSwitch(BusList, YBus, Q_spec, v_guess, Q_lim, V_lim):
+def checkTypeSwitch(BusList, YBus, Q_spec, v_guess, Q_lim):
     """
         Function to typeSwitch a bus either from PV to PQ bus or PQ to PV bus.
 
@@ -795,7 +795,7 @@ def checkTypeSwitch(BusList, YBus, Q_spec, v_guess, Q_lim, V_lim):
                 theta_in = Y_in_polar[1]
                 Qi -= abs(v_i*v_n*Y_in)*math.sin(theta_in + dirac_n - dirac_i)
                 
-            gen = Qi - BusList[i].Q_load
+            gen = Qi + BusList[i].Q_load # by definition
 
             if Q_lim < gen < abs(Q_lim):
                 continue
@@ -818,6 +818,7 @@ def checkTypeSwitch(BusList, YBus, Q_spec, v_guess, Q_lim, V_lim):
                 v_guess_temp = {}
                 if key_v not in v_guess:
                     v_guess_temp[key_v] = BusList[i].voltage_magnitude
+                    BusList[i].update_bus_voltage(new_previous_voltage= BusList[i].voltage_magnitude)
                 for k in v_guess:
                     v_guess_temp[k] = v_guess[k]
                 v_guess = v_guess_temp
@@ -841,32 +842,83 @@ def checkTypeSwitch(BusList, YBus, Q_spec, v_guess, Q_lim, V_lim):
                 v_guess_temp = {}
                 if key_v not in v_guess:
                     v_guess_temp[key_v] = BusList[i].voltage_magnitude
+                    BusList[i].update_bus_voltage(new_previous_voltage= BusList[i].voltage_magnitude)
                 for k in v_guess:
                     v_guess_temp[k] = v_guess[k]
                 v_guess = v_guess_temp
 
-        # elif BusList[i].BusType == 'PQ_ts':
-        #     Qi = 0
-        #     gen_old = BusList[i].Q_gen
-        #     v_i = BusList[i].voltage_magnitude
-        #     dirac_i = BusList[i].voltage_angle
-        #     for n in range(len(BusList)):
-        #         v_n = BusList[n].voltage_magnitude
-        #         dirac_n = BusList[n].voltage_angle
-        #         Y_in_polar = cmath.polar(YBus[i][n])
-        #         Y_in = Y_in_polar[0]
-        #         theta_in = Y_in_polar[1]
-        #         Qi -= abs(v_i*v_n*Y_in)*math.sin(theta_in + dirac_n - dirac_i)
+        elif BusList[i].BusType == 'PQ_ts':
+            Qi = 0
+            gen_old = BusList[i].Q_gen
+            v_i = BusList[i].voltage_magnitude
+            dirac_i = BusList[i].voltage_angle
+            for n in range(len(BusList)):
+                v_n = BusList[n].voltage_magnitude
+                dirac_n = BusList[n].voltage_angle
+                Y_in_polar = cmath.polar(YBus[i][n])
+                Y_in = Y_in_polar[0]
+                theta_in = Y_in_polar[1]
+                Qi -= abs(v_i*v_n*Y_in)*math.sin(theta_in + dirac_n - dirac_i)
 
-        #     gen = Qi - BusList[i].Q_load
+            gen = Qi + BusList[i].Q_load
 
-        #     if Q_lim < gen < abs(Q_lim):
-        #         BusList[i].typeSwitch("PV")
-        #         BusList[i].update_Pi_Qi(Q_specified= gen - BusList[i].Q_load, Q_gen= gen)
-        #     else:
-        #         continue
+            # if BusList[i].voltage_magnitude >= BusList[i].previous_voltage:
+            #     BusList[i].typeSwitch("PV")
+            #     BusList[i].update_bus_voltage(new_previous_voltage= BusList[i].voltage_magnitude)
 
+            #     # Update Q_spec
+            #     key_Q = f"Q_{i+1}"
+            #     Q_spec.pop(key_Q, None)
+                
+            #     # Update v_guess
+            #     key_v = f"v_{i+1}"
+            #     v_guess.pop(key_v, None)
 
+            if gen_old == Q_lim: # lower limit
+                if BusList[i].voltage_magnitude >= BusList[i].previous_voltage:
+                    gen = Q_lim
+                    BusList[i].update_Pi_Qi(Q_specified= gen - BusList[i].Q_load, Q_gen= gen)
+                else:
+                    if gen >= abs(Q_lim): # upper limit
+                        gen = abs(Q_lim)
+                        BusList[i].update_Pi_Qi(Q_specified= gen - BusList[i].Q_load, Q_gen= gen)
+                    elif gen <= Q_lim:    # lower limit
+                        gen = Q_lim
+                        BusList[i].update_Pi_Qi(Q_specified= gen - BusList[i].Q_load, Q_gen= gen)
+                    else:   # Q_lim < gen < abs(Q_lim)
+                        BusList[i].typeSwitch("PV")
+                        # BusList[i].update_bus_voltage(new_voltage_magnitude= BusList[i].previous_voltage)
+                        BusList[i].update_bus_voltage(new_previous_voltage= BusList[i].voltage_magnitude)
+                        BusList[i].update_Pi_Qi(Q_specified= gen - BusList[i].Q_load, Q_gen= gen)
+                        # Update Q_spec
+                        key_Q = f"Q_{i+1}"
+                        Q_spec.pop(key_Q, None)
+                        # Update v_guess
+                        key_v = f"v_{i+1}"
+                        v_guess.pop(key_v, None)
+
+            elif gen_old == abs(Q_lim):
+                if BusList[i].voltage_magnitude <= BusList[i].previous_voltage:
+                    gen = abs(Q_lim)
+                    BusList[i].update_Pi_Qi(Q_specified= gen - BusList[i].Q_load, Q_gen= gen)
+                else:
+                    if gen >= abs(Q_lim): # upper limit
+                        gen = abs(Q_lim)
+                        BusList[i].update_Pi_Qi(Q_specified= gen - BusList[i].Q_load, Q_gen= gen)
+                    elif gen <= Q_lim:    # lower limit
+                        gen = Q_lim
+                        BusList[i].update_Pi_Qi(Q_specified= gen - BusList[i].Q_load, Q_gen= gen)
+                    else:   # Q_lim < gen < abs(Q_lim)
+                        BusList[i].typeSwitch("PV")
+                        # BusList[i].update_bus_voltage(new_voltage_magnitude= BusList[i].previous_voltage)
+                        BusList[i].update_bus_voltage(new_previous_voltage= BusList[i].voltage_magnitude)
+                        BusList[i].update_Pi_Qi(Q_specified= gen - BusList[i].Q_load, Q_gen= gen)
+                        # Update Q_spec
+                        key_Q = f"Q_{i+1}"
+                        Q_spec.pop(key_Q, None)
+                        # Update v_guess
+                        key_v = f"v_{i+1}"
+                        v_guess.pop(key_v, None)
 
     return Q_spec, v_guess
     
@@ -910,7 +962,7 @@ def updateSlackAndPV(BusList, YBus, Sbase):
                 Y_in = Y_in_polar[0]
                 theta_in = Y_in_polar[1]
                 Pi += abs(v_i*v_n*Y_in)*math.cos(theta_in + dirac_n - dirac_i)
-            BusList[i].update_Pi_Qi(P_specified=Pi, P_gen= (Pi - BusList[i].P_load))
+            BusList[i].update_Pi_Qi(P_specified=Pi, P_gen= (Pi + BusList[i].P_load))
 
             Qi = 0
             for n in range(len(BusList)):
@@ -920,7 +972,7 @@ def updateSlackAndPV(BusList, YBus, Sbase):
                 Y_in = Y_in_polar[0]
                 theta_in = Y_in_polar[1]
                 Qi -= abs(v_i*v_n*Y_in)*math.sin(theta_in + dirac_n - dirac_i)
-            BusList[i].update_Pi_Qi(Q_specified=Qi, Q_gen= (Qi - BusList[i].Q_load))
+            BusList[i].update_Pi_Qi(Q_specified=Qi, Q_gen= (Qi + BusList[i].Q_load))
 
         elif BusList[i].BusType == 'PV':
             Qi = 0
@@ -933,7 +985,7 @@ def updateSlackAndPV(BusList, YBus, Sbase):
                 Y_in = Y_in_polar[0]
                 theta_in = Y_in_polar[1]
                 Qi -= abs(v_i*v_n*Y_in)*math.sin(theta_in + dirac_n - dirac_i)
-            BusList[i].update_Pi_Qi(Q_specified=Qi, Q_gen= (Qi - BusList[i].Q_load))
+            BusList[i].update_Pi_Qi(Q_specified=Qi, Q_gen= (Qi + BusList[i].Q_load))
 
 def calcDecoupledJacobian(BusList, P, Q, v, dirac, YBus):
     """

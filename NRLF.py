@@ -1,5 +1,4 @@
 from functions import *
-import pandas as pd
 import time
 
 
@@ -24,10 +23,9 @@ Ubase = 230 # kV
 Zbase = (Ubase**2)/Sbase
 max_iterations = 300
 tolerance = 1e-6
-Q_lim = -0.65
-V_lim = -0.1 # take 1 - V_lim for max and 1 - abs(V_lim) for min
+Q_lim = -0.65   # To check PQ state, lower limit to -0.6
 
-def iterateNRLF(BusList, YBus, P_spec, Q_spec, v_guess, dirac_guess, max_iterations, tolerance, Q_lim, V_lim):
+def iterateNRLF(BusList, YBus, P_spec, Q_spec, v_guess, dirac_guess, max_iterations, tolerance, Q_lim):
     """
         Iterate the solution until convergance
         delta_u is known values - ΔP, ΔQ
@@ -42,9 +40,9 @@ def iterateNRLF(BusList, YBus, P_spec, Q_spec, v_guess, dirac_guess, max_iterati
         if checkConvergence(tolerance, delta_u):
             convergence = True
         elif max_iterations < k:
-            break
+            return f"The method did not converge after {k} iterations!"
         else:
-            # Q_spec, v_guess = checkTypeSwitch(BusList, YBus, Q_spec, v_guess, Q_lim, V_lim)
+            Q_spec, v_guess = checkTypeSwitch(BusList, YBus, Q_spec, v_guess, Q_lim)
             deltaP = calcP(BusList, P_spec, YBus)
             deltaQ = calcQ(BusList, Q_spec, YBus)
             delta_u = np.concatenate((deltaP, deltaQ), axis= 0)
@@ -54,9 +52,9 @@ def iterateNRLF(BusList, YBus, P_spec, Q_spec, v_guess, dirac_guess, max_iterati
             updateBusList(BusList, dirac_guess, v_guess)
             
             k += 1
-    return delta_u, delta_x, k
+    return f"The method converged after {k} iterations!"
 
-def NewtonRaphson(bus_data, line_data, Sbase, max_iterations, tolerance, Q_lim, V_lim):
+def NewtonRaphson(bus_data, line_data, Sbase, max_iterations, tolerance, Q_lim):
     """
         Values under must be defined in the funtion () before implementing in main()
         line_data, bus_data, Sbase, Ubase, max_iterations, tolerance
@@ -71,7 +69,7 @@ def NewtonRaphson(bus_data, line_data, Sbase, max_iterations, tolerance, Q_lim, 
     LineList = buildLineList(line_data)
     P_spec, Q_spec = findKnowns(bus_data, Sbase)
     v_guess, dirac_guess = findUnknowns(bus_overview, bus_data)
-    delta_u, delta_x, k = iterateNRLF(BusList= BusList, 
+    message = iterateNRLF(BusList= BusList, 
                     YBus= YBus, 
                     P_spec= P_spec, 
                     Q_spec= Q_spec, 
@@ -79,8 +77,7 @@ def NewtonRaphson(bus_data, line_data, Sbase, max_iterations, tolerance, Q_lim, 
                     dirac_guess= dirac_guess, 
                     max_iterations= max_iterations, 
                     tolerance= tolerance,
-                    Q_lim=Q_lim,
-                    V_lim=V_lim
+                    Q_lim=Q_lim
                     )
 
     updateSlackAndPV(BusList=BusList, YBus=YBus, Sbase=Sbase) # Sjekk Qi på PV bus
@@ -90,15 +87,14 @@ def NewtonRaphson(bus_data, line_data, Sbase, max_iterations, tolerance, Q_lim, 
     NRLF = df_NRLF.to_latex()
     print(NRLF)
     print("\n")
+    flow2 = flow.to_latex()
+    print(flow2)
+    print("\n")
     S_I = S_I_injections.to_latex()
     print(S_I)
     print("\n")
-    flow2 = flow.to_latex()
-    print("\n")
-    print(flow2)
-    print("\n")
     print(f"Active loss: {round(df_NRLF['P [pu]'].sum(),3)}, Reactive loss: {round(df_NRLF['Q [pu]'].sum(),3)}")
-    print(f"The method converged after {k} iterations!")
+    print(message)
     print(f"Active powerloss = {round(sump,3)} [MW], Reactive powerloss =  {round(sumq,3)} [MVAr]")
     print("--- %s seconds ---" % (time.time() - start_time))
     
@@ -113,6 +109,5 @@ if __name__ == '__main__':
               Sbase=Sbase, 
               max_iterations=max_iterations, 
               tolerance=tolerance, 
-              Q_lim=Q_lim,
-              V_lim=V_lim
+              Q_lim=Q_lim
               )
