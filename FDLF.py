@@ -4,14 +4,15 @@ import time
 # Given data
 line_data = ReadCsvFile('./files/given_network/network_configuration_line_data.csv')
 # line_data = ReadCsvFile('./files/given_network/network_configuration_line_data_no_shunt.csv')
-bus_data = ReadCsvFile('./files/given_network/network_configuration_bus_data_slack1.csv')
+# bus_data = ReadCsvFile('./files/given_network/network_configuration_bus_data_slack1.csv')
 # bus_data = ReadCsvFile('./files/given_network/network_configuration_bus_data_slack2.csv')
+bus_data = ReadCsvFile('./files/given_network/network_configuration_bus_data_slack1_no_reactive_load.csv')
 Sbase = 100 # MVA
 Ubase = 230 # kV
 num_buses = len(bus_data)
-max_iterations = 10
+max_iterations = 100
 tolerance = 1e-6
-Q_lim = -0.65
+Q_lim = 1.2
 
 def iterateFDLF(BusList, YBus, P_spec, Q_spec, v_guess, dirac_guess, max_iterations, tolerance, B_prime, B_double_prime, Q_lim):
 
@@ -23,6 +24,7 @@ def iterateFDLF(BusList, YBus, P_spec, Q_spec, v_guess, dirac_guess, max_iterati
     deltaQ = calcQ(BusList, Q_spec, YBus)
     deltaQn_Vn = calcDeltaQn_Vn(BusList, deltaQ)
     delta_v = np.dot(B_double_prime, deltaQn_Vn)
+    
     updateVoltageFDLFandBusList(BusList, delta_v, v_guess)
     delta_u = np.concatenate((deltaP, deltaQ), axis= 0)
     k = 0
@@ -42,6 +44,7 @@ def iterateFDLF(BusList, YBus, P_spec, Q_spec, v_guess, dirac_guess, max_iterati
             deltaQ = calcQ(BusList, Q_spec, YBus)           # Calculate ΔQ
             deltaQn_Vn = calcDeltaQn_Vn(BusList, deltaQ)    # Calculate ΔQ/|V|
             delta_v = np.dot(B_double_prime, deltaQn_Vn)    # Calculate Δ|V|
+            
             updateVoltageFDLFandBusList(BusList, delta_v, v_guess)
             delta_u = np.concatenate((deltaP, deltaQ), axis= 0)
             k += 1

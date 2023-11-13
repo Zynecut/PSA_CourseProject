@@ -3,13 +3,16 @@ import time
 
 # standard
 line_data = ReadCsvFile('./files/given_network/network_configuration_line_data.csv')
+# line_data = ReadCsvFile('./files/given_network/network_configuration_line_data_no_shunt.csv')
 bus_data = ReadCsvFile('./files/given_network/network_configuration_bus_data_slack1.csv')
+# bus_data = ReadCsvFile('./files/given_network/network_configuration_bus_data_slack2.csv')
 Sbase = 100 # MVA
 Ubase = 230 # kV
 max_iterations = 100
 tolerance = 1e-6
+Q_lim = 0.65
 
-def iterateDLF(BusList, YBus, P_spec, Q_spec, v_guess, dirac_guess, max_iterations, tolerance):
+def iterateDLF(BusList, YBus, P_spec, Q_spec, v_guess, dirac_guess, max_iterations, tolerance, Q_lim):
     """
         Iterate the solution until convergance
         delta_u is known values - ΔP, ΔQ
@@ -27,6 +30,7 @@ def iterateDLF(BusList, YBus, P_spec, Q_spec, v_guess, dirac_guess, max_iteratio
         elif max_iterations < k:
             break
         else:
+            Q_spec, v_guess = checkTypeSwitch(BusList, YBus, Q_spec, v_guess, Q_lim)
             deltaP = calcP(BusList, P_spec, YBus)
             deltaQ = calcQ(BusList, Q_spec, YBus)
             delta_u = np.concatenate((deltaP, deltaQ), axis= 0)
@@ -38,7 +42,7 @@ def iterateDLF(BusList, YBus, P_spec, Q_spec, v_guess, dirac_guess, max_iteratio
     return delta_u, delta_x, k
 
 
-def DLF(bus_data, line_data, Sbase, max_iterations, tolerance):
+def DLF(bus_data, line_data, Sbase, max_iterations, tolerance, Q_lim):
     """
         delta_u is known values - ΔP, ΔQ
         delta_x is unknown values - Δδ, Δ|v|
@@ -57,7 +61,8 @@ def DLF(bus_data, line_data, Sbase, max_iterations, tolerance):
                                      v_guess= v_guess, 
                                      dirac_guess= dirac_guess, 
                                      max_iterations= max_iterations, 
-                                     tolerance= tolerance
+                                     tolerance= tolerance,
+                                     Q_lim= Q_lim
                                      ) 
     
     updateSlackAndPV(BusList=BusList, YBus=YBus, Sbase=Sbase) # Sjekk Qi på PV bus
@@ -84,5 +89,6 @@ if __name__ == '__main__':
         line_data=line_data, 
         Sbase=Sbase, 
         max_iterations=max_iterations, 
-        tolerance=tolerance
+        tolerance=tolerance,
+        Q_lim=Q_lim
         )
