@@ -23,13 +23,14 @@ class Bus:
         else:
             self.Q_specified = None
         self.BusType = BusType
+        self.previous_voltage = 0
 
 
     def __str__(self) -> str:
         return f"Bus ID: {self.bus_id}, Voltage Magnitude: {self.voltage_magnitude}, Voltage angle: {self.voltage_angle}"
     
 
-    def update_bus_voltage(self, new_voltage_magnitude=None, new_voltage_angle=None):
+    def update_bus_voltage(self, new_voltage_magnitude=None, new_voltage_angle=None, new_previous_voltage=None):
         """
             Updates bus voltages and/or bus angles.
         """
@@ -37,6 +38,8 @@ class Bus:
             self.voltage_magnitude = new_voltage_magnitude
         if new_voltage_angle is not None:
             self.voltage_angle = new_voltage_angle
+        if new_previous_voltage is not None:
+            self.previous_voltage = new_previous_voltage
 
     def update_Pi_Qi(self, P_specified=None, Q_specified=None, P_gen=None, Q_gen=None):
         """

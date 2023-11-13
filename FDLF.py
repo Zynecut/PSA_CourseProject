@@ -11,8 +11,9 @@ Ubase = 230 # kV
 num_buses = len(bus_data)
 max_iterations = 10
 tolerance = 1e-6
+Q_lim = -0.65
 
-def iterateFDLF(BusList, YBus, P_spec, Q_spec, v_guess, dirac_guess, max_iterations, tolerance, B_prime, B_double_prime):
+def iterateFDLF(BusList, YBus, P_spec, Q_spec, v_guess, dirac_guess, max_iterations, tolerance, B_prime, B_double_prime, Q_lim):
 
     deltaP = calcP(BusList, P_spec, YBus)
     deltaPn_Vn = calcDeltaPn_Vn(BusList, deltaP)
@@ -30,8 +31,9 @@ def iterateFDLF(BusList, YBus, P_spec, Q_spec, v_guess, dirac_guess, max_iterati
         if checkConvergence(tolerance, delta_u):
             convergence = True
         elif max_iterations < k:
-            break
+            return f"The method did not converge after {k} iterations!"
         else:
+            Q_spec, v_guess = checkTypeSwitch(BusList, YBus, Q_spec, v_guess, Q_lim)
             deltaP = calcP(BusList, P_spec, YBus)           # Calculate ΔP
             deltaPn_Vn = calcDeltaPn_Vn(BusList, deltaP)    # Calculate ΔP/|V|
             delta_Dirac = np.dot(B_prime, deltaPn_Vn)       # Calculate Δδ
@@ -43,9 +45,9 @@ def iterateFDLF(BusList, YBus, P_spec, Q_spec, v_guess, dirac_guess, max_iterati
             updateVoltageFDLFandBusList(BusList, delta_v, v_guess)
             delta_u = np.concatenate((deltaP, deltaQ), axis= 0)
             k += 1
-    return k
+    return f"The method converged after {k} iterations!"
 
-def FDLF(bus_data, line_data, Sbase, max_iterations, tolerance):
+def FDLF(bus_data, line_data, Sbase, max_iterations, tolerance, Q_lim):
     """
         R on line is neglected, thus a new YBus must be calculated.
         Stratety:
@@ -65,7 +67,7 @@ def FDLF(bus_data, line_data, Sbase, max_iterations, tolerance):
     B_prime, B_double_prime = calcB_Prime(BusList, YBus)
     B_prime_inv = np.linalg.inv(B_prime)
     B_double_prime_inv = np.linalg.inv(B_double_prime)
-    k = iterateFDLF(BusList= BusList, 
+    message = iterateFDLF(BusList= BusList, 
                     YBus= YBus, 
                     P_spec= P_spec, 
                     Q_spec= Q_spec, 
@@ -74,7 +76,8 @@ def FDLF(bus_data, line_data, Sbase, max_iterations, tolerance):
                     max_iterations= max_iterations, 
                     tolerance= tolerance,
                     B_prime= B_prime_inv,
-                    B_double_prime= B_double_prime_inv
+                    B_double_prime= B_double_prime_inv,
+                    Q_lim= Q_lim
                     )
     updateSlackAndPV(BusList=BusList, YBus=YBus, Sbase=Sbase) # Sjekk Qi på PV bus
 
@@ -90,7 +93,7 @@ def FDLF(bus_data, line_data, Sbase, max_iterations, tolerance):
     print(S_I)
     print("\n")
     print(f"Active loss: {round(df_FDLF['P [pu]'].sum(),3)}, Reactive loss: {round(df_FDLF['Q [pu]'].sum(),3)}")
-    print(f"The method converged after {k} iterations!")
+    print(message)
     print(f"Active powerloss = {round(sump,3)} [MW], Reactive powerloss =  {round(sumq,3)} [MVAr]")
     print("--- %s seconds ---" % (time.time() - start_time))
 
@@ -100,5 +103,6 @@ if __name__ == '__main__':
         line_data=line_data, 
         Sbase=Sbase, 
         max_iterations=max_iterations, 
-        tolerance=tolerance
+        tolerance=tolerance,
+        Q_lim=Q_lim
         )
