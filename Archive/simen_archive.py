@@ -147,3 +147,24 @@
     #             result_df.iloc[row,col] = df_Ydc_absolute.iloc[row,col]*df_phaseangle.iloc[row, 0]
 
     # print(result_df) 
+
+
+
+    # print(res)
+    
+    # result_df = pd.DataFrame(columns=df_Ydc_absolute.columns, index=df_Ydc_absolute.index)
+    
+    # k = 0
+    # for rad in range(df_Ydc_absolute.shape[1]):
+    #     #print(df_Ydc_absolute[kolonne])
+    #     for kolonne in range(df_Ydc_absolute.shape[0]):
+    #         tall = df_Ydc_absolute[kolonne][rad]
+    #         if tall == 0:
+    #             continue
+    #         result_df.iloc[rad,kolonne] = tall*(df_phaseangle[0][0]-df_phaseangle[0][k])*Sbase
+    #         k += 1
+    #         if k > df_phaseangle.shape[1]:
+    #             k = 0
+                
+    # result_df.fillna(0, inplace=True)
+    # print(result_df)
