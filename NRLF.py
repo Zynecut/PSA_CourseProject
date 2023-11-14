@@ -5,7 +5,7 @@ import time
 # Given data
 line_data = ReadCsvFile('./files/given_network/network_configuration_line_data.csv')
 # line_data = ReadCsvFile('./files/given_network/network_configuration_line_data_no_shunt.csv')
-bus_data = ReadCsvFile('./files/given_network/network_configuration_bus_data_slack1.csv')
+# bus_data = ReadCsvFile('./files/given_network/network_configuration_bus_data_slack1.csv')
 # bus_data = ReadCsvFile('./files/given_network/network_configuration_bus_data_slack2.csv')
 
 # Test data
@@ -18,12 +18,16 @@ bus_data = ReadCsvFile('./files/given_network/network_configuration_bus_data_sla
 # line_data = ReadCsvFile('./files/test_network/network_configuration_line_data_Fellestest.csv')
 # bus_data = ReadCsvFile('./files/test_network/network_configuration_bus_data_Fellestest.csv')
 
+# Data from DCPF
+bus_data = ReadCsvFile('./files/given_network/network_configuration_bus_data_slack1_DCPF_Start.csv')
+
+
 Sbase = 100 # MVA
 Ubase = 230 # kV
 Zbase = (Ubase**2)/Sbase
 max_iterations = 300
 tolerance = 1e-6
-Q_lim = -0.6   # To check PQ state, lower limit to -0.6
+Q_lim = -0.65   # To check PQ state, lower limit to -0.6
 
 def iterateNRLF(BusList, YBus, P_spec, Q_spec, v_guess, dirac_guess, max_iterations, tolerance, Q_lim):
     """
