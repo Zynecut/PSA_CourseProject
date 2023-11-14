@@ -57,6 +57,7 @@ def DCPF(bus_data, line_data, Sbase):
             res[i][j] = Y_ij*(dirac_i - dirac_j)*Sbase
 
 
+
     res_df = pd.DataFrame(res)
     rest = res_df.to_latex()
     print("\n", angle, "\n")
