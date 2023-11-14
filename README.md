@@ -74,7 +74,6 @@ git commit -m "Describe your changes here"
 git push
 ```
 Remember not to push to the main branch but to your own branch. Verify your current branch using:
-
 ```bash
 # Check branch
 git branch
@@ -90,7 +89,7 @@ git branch -D <branc_name>
 ```
 
 ### How to pull changes made by others
-Run `git pull` to fetch changes from the repository and update your local code. `Git pull` combines `git fetch` and `git merge`. If you encounter a merge conflict you can't resolve or decide to abort, use `git merge --abort` to return the branch to its state before pulling.
+Run `git pull` to fetch changes from the repository and update your local code. `git pull` combines `git fetch` and `git merge`. If you encounter a merge conflict you can't resolve or decide to abort, use `git merge --abort` to return the branch to its state before pulling.
 
 ### Git pull from a branch in GitHub to a local branch
 Replace `{github_branch}` with the branch you want to pull from and `{local_branch}` with your local branch name.

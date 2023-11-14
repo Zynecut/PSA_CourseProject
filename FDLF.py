@@ -4,16 +4,16 @@ import time
 # Given data
 line_data = ReadCsvFile('./files/given_network/network_configuration_line_data.csv')
 # line_data = ReadCsvFile('./files/given_network/network_configuration_line_data_no_shunt.csv')
-# bus_data = ReadCsvFile('./files/given_network/network_configuration_bus_data_slack1.csv')
+bus_data = ReadCsvFile('./files/given_network/network_configuration_bus_data_slack1.csv')
 # bus_data = ReadCsvFile('./files/given_network/network_configuration_bus_data_slack2.csv')
-bus_data = ReadCsvFile('./files/given_network/network_configuration_bus_data_slack1_no_reactive_load.csv')
+# bus_data = ReadCsvFile('./files/given_network/network_configuration_bus_data_slack1_no_reactive_load.csv')
 Sbase = 100 # MVA
 Ubase = 230 # kV
 num_buses = len(bus_data)
 max_iterations = 100
 tolerance = 1e-6
-Q_lim = 1.4
-iterate_partial_orEnd = False # True for calculation partially through iteration or False for calculation at end of iteration
+Q_lim = 0.65
+iterate_partial_orEnd = True # True for calculation partially through iteration or False for calculation at end of iteration
 
 def iterateFDLF(BusList, YBus, P_spec, Q_spec, v_guess, dirac_guess, max_iterations, tolerance, B_prime, B_double_prime, Q_lim, iterate_partial_orEnd):
 
@@ -25,7 +25,10 @@ def iterateFDLF(BusList, YBus, P_spec, Q_spec, v_guess, dirac_guess, max_iterati
 
         deltaQ = calcQ(BusList, Q_spec, YBus)
         deltaQn_Vn = calcDeltaQn_Vn(BusList, deltaQ)
-        delta_v = np.dot(B_double_prime, deltaQn_Vn)
+        if len(deltaQ) != len(B_double_prime):      
+            delta_v = np.dot(B_prime, deltaQn_Vn)   # If typeSwitched
+        else:
+            delta_v = np.dot(B_double_prime, deltaQn_Vn)    # Calculate Δ|V|
 
         updateVoltageFDLFandBusList(BusList, delta_v, v_guess)
         delta_u = np.concatenate((deltaP, deltaQ), axis= 0)
@@ -45,7 +48,10 @@ def iterateFDLF(BusList, YBus, P_spec, Q_spec, v_guess, dirac_guess, max_iterati
 
                 deltaQ = calcQ(BusList, Q_spec, YBus)           # Calculate ΔQ
                 deltaQn_Vn = calcDeltaQn_Vn(BusList, deltaQ)    # Calculate ΔQ/|V|
-                delta_v = np.dot(B_double_prime, deltaQn_Vn)    # Calculate Δ|V|
+                if len(deltaQ) != len(B_double_prime):      
+                    delta_v = np.dot(B_prime, deltaQn_Vn)   # If typeSwitched
+                else:
+                    delta_v = np.dot(B_double_prime, deltaQn_Vn)    # Calculate Δ|V|
                 
                 updateVoltageFDLFandBusList(BusList, delta_v, v_guess)
                 delta_u = np.concatenate((deltaP, deltaQ), axis= 0)
@@ -59,7 +65,10 @@ def iterateFDLF(BusList, YBus, P_spec, Q_spec, v_guess, dirac_guess, max_iterati
         
         deltaQ = calcQ(BusList, Q_spec, YBus)
         deltaQn_Vn = calcDeltaQn_Vn(BusList, deltaQ)
-        delta_v = np.dot(B_double_prime, deltaQn_Vn)
+        if len(deltaQ) != len(B_double_prime):      
+            delta_v = np.dot(B_prime, deltaQn_Vn)   # If typeSwitched
+        else:
+            delta_v = np.dot(B_double_prime, deltaQn_Vn)    # Calculate Δ|V|
 
         updateAngleFDLFandBusList(BusList, delta_Dirac, dirac_guess)
         updateVoltageFDLFandBusList(BusList, delta_v, v_guess)
@@ -79,7 +88,10 @@ def iterateFDLF(BusList, YBus, P_spec, Q_spec, v_guess, dirac_guess, max_iterati
                 
                 deltaQ = calcQ(BusList, Q_spec, YBus)           # Calculate ΔQ
                 deltaQn_Vn = calcDeltaQn_Vn(BusList, deltaQ)    # Calculate ΔQ/|V|
-                delta_v = np.dot(B_double_prime, deltaQn_Vn)    # Calculate Δ|V|
+                if len(deltaQ) != len(B_double_prime):      
+                    delta_v = np.dot(B_prime, deltaQn_Vn)   # If typeSwitched
+                else:
+                    delta_v = np.dot(B_double_prime, deltaQn_Vn)    # Calculate Δ|V|
                 
                 updateAngleFDLFandBusList(BusList, delta_Dirac, dirac_guess)
                 updateVoltageFDLFandBusList(BusList, delta_v, v_guess)
