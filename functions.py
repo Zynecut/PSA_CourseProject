@@ -797,7 +797,7 @@ def checkTypeSwitch(BusList, YBus, Q_spec, v_guess, Q_lim):
                 
             gen = Qi + BusList[i].Q_load # by definition
 
-            if Q_lim < gen < abs(Q_lim):
+            if -abs(Q_lim) < gen < abs(Q_lim):
                 continue
             elif gen >= abs(Q_lim):
                 gen = abs(Q_lim)
@@ -824,7 +824,7 @@ def checkTypeSwitch(BusList, YBus, Q_spec, v_guess, Q_lim):
                 v_guess = v_guess_temp
 
             else:
-                gen = Q_lim
+                gen = -abs(Q_lim)
                 BusList[i].typeSwitch("PQ_ts")
                 BusList[i].update_Pi_Qi(Q_specified= gen - BusList[i].Q_load, Q_gen= gen)
 
@@ -874,16 +874,16 @@ def checkTypeSwitch(BusList, YBus, Q_spec, v_guess, Q_lim):
             #     key_v = f"v_{i+1}"
             #     v_guess.pop(key_v, None)
 
-            if gen_old == Q_lim: # lower limit
+            if gen_old == -abs(Q_lim): # lower limit
                 if BusList[i].voltage_magnitude >= BusList[i].previous_voltage:
-                    gen = Q_lim
+                    gen = -abs(Q_lim)
                     BusList[i].update_Pi_Qi(Q_specified= gen - BusList[i].Q_load, Q_gen= gen)
                 else:
                     if gen >= abs(Q_lim): # upper limit
                         gen = abs(Q_lim)
                         BusList[i].update_Pi_Qi(Q_specified= gen - BusList[i].Q_load, Q_gen= gen)
-                    elif gen <= Q_lim:    # lower limit
-                        gen = Q_lim
+                    elif gen <= -abs(Q_lim):    # lower limit
+                        gen = -abs(Q_lim)
                         BusList[i].update_Pi_Qi(Q_specified= gen - BusList[i].Q_load, Q_gen= gen)
                     else:   # Q_lim < gen < abs(Q_lim)
                         BusList[i].typeSwitch("PV")
@@ -906,8 +906,8 @@ def checkTypeSwitch(BusList, YBus, Q_spec, v_guess, Q_lim):
                     if gen >= abs(Q_lim): # upper limit
                         gen = abs(Q_lim)
                         BusList[i].update_Pi_Qi(Q_specified= gen - BusList[i].Q_load, Q_gen= gen)
-                    elif gen <= Q_lim:    # lower limit
-                        gen = Q_lim
+                    elif gen <= -abs(Q_lim):    # lower limit
+                        gen = -abs(Q_lim)
                         BusList[i].update_Pi_Qi(Q_specified= gen - BusList[i].Q_load, Q_gen= gen)
                     else:   # Q_lim < gen < abs(Q_lim)
                         BusList[i].typeSwitch("PV")
@@ -1050,10 +1050,18 @@ def calcB_Prime(BusList, YBus):
             # Removes real parts of elements
             B_prime = B_prime.imag * (-1)
 
-        if BusList[i].BusType == 'PV':
+
+    for i in range(len(BusList)):
+        if BusList[i].bus_id == 1 and BusList[i].BusType == 'PV':
+            bus_index = BusList[i].bus_id - 1
+            B_double_prime = np.delete(B_prime, bus_index, axis=0)
+            B_double_prime = np.delete(B_double_prime, bus_index, axis=1)
+
+        elif BusList[i].BusType == 'PV':
             bus_index = BusList[i].bus_id - 2
             B_double_prime = np.delete(B_prime, bus_index, axis=0)
             B_double_prime = np.delete(B_double_prime, bus_index, axis=1)
+
     
     return B_prime, B_double_prime
     
@@ -1084,7 +1092,10 @@ def updateAngleFDLFandBusList(BusList, delta_dirac, dirac_guess=None):
     dirac_count = len(dirac_guess)
     for i in range(dirac_start, dirac_count + dirac_start):
         dirac_key = f'DIRAC_{i}'
-        dirac_guess[dirac_key] += delta_dirac[i-dirac_start][0]
+        if dirac_key in dirac_guess:
+            dirac_guess[dirac_key] += delta_dirac[i-dirac_start][0]
+        else:
+            dirac_start += 1
 
     for bus_id in dirac_guess:
         dirac_num = extract_number(bus_id)
@@ -1197,8 +1208,6 @@ def print_dataframe_as_latex(dataframe):
 
     print("\n---------------- LaTeX Code -----------------")
     print(latex_code)
-
-
 
 def PowerLossAndFlow(line_data, BusList, Sbase, Ubase):
     sumP = 0

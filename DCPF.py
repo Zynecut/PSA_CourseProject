@@ -8,7 +8,6 @@ Sbase = 100 # MVA
 Ubase = 230 # kV
 
 
-
 def DCPF(bus_data, line_data, Sbase):
     start_time = time.time()
     num_buses = len(bus_data)
@@ -42,12 +41,8 @@ def DCPF(bus_data, line_data, Sbase):
             else:
                 continue
        
-
-
-    print("\n", angle, "\n")
-
     YBus_DC_absolute = np.abs(np.imag(YBus))
-    df_Ydc_absolute = pd.DataFrame(YBus_DC_absolute)
+    # df_Ydc_absolute = pd.DataFrame(YBus_DC_absolute)
     # print(df_Ydc_absolute)
 
    
@@ -59,41 +54,15 @@ def DCPF(bus_data, line_data, Sbase):
                 continue
             dirac_i = BusList[i].voltage_angle
             dirac_j = BusList[j].voltage_angle
-            res[i][j] = (Y_ij*(dirac_i - dirac_j))*Sbase
+            res[i][j] = Y_ij*(dirac_i - dirac_j)*Sbase
 
-    print(res)
-    
 
-    # result_df = pd.DataFrame(columns=df_Ydc_absolute.columns, index=df_Ydc_absolute.index)
-    
-    # k = 0
-    # for rad in range(df_Ydc_absolute.shape[1]):
-    #     #print(df_Ydc_absolute[kolonne])
-    #     for kolonne in range(df_Ydc_absolute.shape[0]):
-    #         tall = df_Ydc_absolute[kolonne][rad]
-    #         if tall == 0:
-    #             continue
-    #         result_df.iloc[rad,kolonne] = tall*(df_phaseangle[0][0]-df_phaseangle[0][k])*Sbase
-    #         k += 1
-    #         if k > df_phaseangle.shape[1]:
-    #             k = 0
-                
-    # result_df.fillna(0, inplace=True)
-    # print(result_df)
 
     res_df = pd.DataFrame(res)
     rest = res_df.to_latex()
+    print("\n", angle, "\n")
     print(rest)        
     print("--- %s seconds ---" % (time.time() - start_time))
-
-            
-
-
-
-def findSlackBusType(bus_overview):
-    for bus_info in bus_overview:
-        if bus_info['Type'] == 'Slack':
-            return bus_info['Bus']
 
 
 if __name__ == '__main__':

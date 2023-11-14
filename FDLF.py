@@ -4,50 +4,90 @@ import time
 # Given data
 line_data = ReadCsvFile('./files/given_network/network_configuration_line_data.csv')
 # line_data = ReadCsvFile('./files/given_network/network_configuration_line_data_no_shunt.csv')
-bus_data = ReadCsvFile('./files/given_network/network_configuration_bus_data_slack1.csv')
+# bus_data = ReadCsvFile('./files/given_network/network_configuration_bus_data_slack1.csv')
 # bus_data = ReadCsvFile('./files/given_network/network_configuration_bus_data_slack2.csv')
+bus_data = ReadCsvFile('./files/given_network/network_configuration_bus_data_slack1_no_reactive_load.csv')
 Sbase = 100 # MVA
 Ubase = 230 # kV
 num_buses = len(bus_data)
-max_iterations = 10
+max_iterations = 100
 tolerance = 1e-6
-Q_lim = -0.65
+Q_lim = 1.4
+iterate_partial_orEnd = False # True for calculation partially through iteration or False for calculation at end of iteration
 
-def iterateFDLF(BusList, YBus, P_spec, Q_spec, v_guess, dirac_guess, max_iterations, tolerance, B_prime, B_double_prime, Q_lim):
+def iterateFDLF(BusList, YBus, P_spec, Q_spec, v_guess, dirac_guess, max_iterations, tolerance, B_prime, B_double_prime, Q_lim, iterate_partial_orEnd):
 
-    deltaP = calcP(BusList, P_spec, YBus)
-    deltaPn_Vn = calcDeltaPn_Vn(BusList, deltaP)
-    delta_Dirac = np.dot(B_prime, deltaPn_Vn)
-    updateAngleFDLFandBusList(BusList, delta_Dirac, dirac_guess)
+    if iterate_partial_orEnd:
+        deltaP = calcP(BusList, P_spec, YBus)
+        deltaPn_Vn = calcDeltaPn_Vn(BusList, deltaP)
+        delta_Dirac = np.dot(B_prime, deltaPn_Vn)
+        updateAngleFDLFandBusList(BusList, delta_Dirac, dirac_guess)
 
-    deltaQ = calcQ(BusList, Q_spec, YBus)
-    deltaQn_Vn = calcDeltaQn_Vn(BusList, deltaQ)
-    delta_v = np.dot(B_double_prime, deltaQn_Vn)
-    updateVoltageFDLFandBusList(BusList, delta_v, v_guess)
-    delta_u = np.concatenate((deltaP, deltaQ), axis= 0)
-    k = 0
-    convergence = False
-    while not convergence:
-        if checkConvergence(tolerance, delta_u):
-            convergence = True
-        elif max_iterations < k:
-            return f"The method did not converge after {k} iterations!"
-        else:
-            Q_spec, v_guess = checkTypeSwitch(BusList, YBus, Q_spec, v_guess, Q_lim)
-            deltaP = calcP(BusList, P_spec, YBus)           # Calculate ΔP
-            deltaPn_Vn = calcDeltaPn_Vn(BusList, deltaP)    # Calculate ΔP/|V|
-            delta_Dirac = np.dot(B_prime, deltaPn_Vn)       # Calculate Δδ
-            updateAngleFDLFandBusList(BusList, delta_Dirac, dirac_guess)
+        deltaQ = calcQ(BusList, Q_spec, YBus)
+        deltaQn_Vn = calcDeltaQn_Vn(BusList, deltaQ)
+        delta_v = np.dot(B_double_prime, deltaQn_Vn)
 
-            deltaQ = calcQ(BusList, Q_spec, YBus)           # Calculate ΔQ
-            deltaQn_Vn = calcDeltaQn_Vn(BusList, deltaQ)    # Calculate ΔQ/|V|
-            delta_v = np.dot(B_double_prime, deltaQn_Vn)    # Calculate Δ|V|
-            updateVoltageFDLFandBusList(BusList, delta_v, v_guess)
-            delta_u = np.concatenate((deltaP, deltaQ), axis= 0)
-            k += 1
-    return f"The method converged after {k} iterations!"
+        updateVoltageFDLFandBusList(BusList, delta_v, v_guess)
+        delta_u = np.concatenate((deltaP, deltaQ), axis= 0)
+        k = 0
+        convergence = False
+        while not convergence:
+            if checkConvergence(tolerance, delta_u):
+                convergence = True
+            elif max_iterations < k:
+                return f"The method did not converge after {k} iterations!"
+            else:
+                Q_spec, v_guess = checkTypeSwitch(BusList, YBus, Q_spec, v_guess, Q_lim)
+                deltaP = calcP(BusList, P_spec, YBus)           # Calculate ΔP
+                deltaPn_Vn = calcDeltaPn_Vn(BusList, deltaP)    # Calculate ΔP/|V|
+                delta_Dirac = np.dot(B_prime, deltaPn_Vn)       # Calculate Δδ
+                updateAngleFDLFandBusList(BusList, delta_Dirac, dirac_guess)
 
-def FDLF(bus_data, line_data, Sbase, max_iterations, tolerance, Q_lim):
+                deltaQ = calcQ(BusList, Q_spec, YBus)           # Calculate ΔQ
+                deltaQn_Vn = calcDeltaQn_Vn(BusList, deltaQ)    # Calculate ΔQ/|V|
+                delta_v = np.dot(B_double_prime, deltaQn_Vn)    # Calculate Δ|V|
+                
+                updateVoltageFDLFandBusList(BusList, delta_v, v_guess)
+                delta_u = np.concatenate((deltaP, deltaQ), axis= 0)
+                k += 1
+        return f"The method converged after {k} iterations, with partially updated values through each iteration!"
+    
+    else:
+        deltaP = calcP(BusList, P_spec, YBus)
+        deltaPn_Vn = calcDeltaPn_Vn(BusList, deltaP)
+        delta_Dirac = np.dot(B_prime, deltaPn_Vn)
+        
+        deltaQ = calcQ(BusList, Q_spec, YBus)
+        deltaQn_Vn = calcDeltaQn_Vn(BusList, deltaQ)
+        delta_v = np.dot(B_double_prime, deltaQn_Vn)
+
+        updateAngleFDLFandBusList(BusList, delta_Dirac, dirac_guess)
+        updateVoltageFDLFandBusList(BusList, delta_v, v_guess)
+        delta_u = np.concatenate((deltaP, deltaQ), axis= 0)
+        k = 0
+        convergence = False
+        while not convergence:
+            if checkConvergence(tolerance, delta_u):
+                convergence = True
+            elif max_iterations < k:
+                return f"The method did not converge after {k} iterations!"
+            else:
+                Q_spec, v_guess = checkTypeSwitch(BusList, YBus, Q_spec, v_guess, Q_lim)
+                deltaP = calcP(BusList, P_spec, YBus)           # Calculate ΔP
+                deltaPn_Vn = calcDeltaPn_Vn(BusList, deltaP)    # Calculate ΔP/|V|
+                delta_Dirac = np.dot(B_prime, deltaPn_Vn)       # Calculate Δδ
+                
+                deltaQ = calcQ(BusList, Q_spec, YBus)           # Calculate ΔQ
+                deltaQn_Vn = calcDeltaQn_Vn(BusList, deltaQ)    # Calculate ΔQ/|V|
+                delta_v = np.dot(B_double_prime, deltaQn_Vn)    # Calculate Δ|V|
+                
+                updateAngleFDLFandBusList(BusList, delta_Dirac, dirac_guess)
+                updateVoltageFDLFandBusList(BusList, delta_v, v_guess)
+                delta_u = np.concatenate((deltaP, deltaQ), axis= 0)
+                k += 1
+        return f"The method converged after {k} iterations, with updated values at end of each iteration!"
+
+def FDLF(bus_data, line_data, Sbase, max_iterations, tolerance, Q_lim, iterate_partial_orEnd):
     """
         R on line is neglected, thus a new YBus must be calculated.
         Stratety:
@@ -77,7 +117,8 @@ def FDLF(bus_data, line_data, Sbase, max_iterations, tolerance, Q_lim):
                     tolerance= tolerance,
                     B_prime= B_prime_inv,
                     B_double_prime= B_double_prime_inv,
-                    Q_lim= Q_lim
+                    Q_lim= Q_lim,
+                    iterate_partial_orEnd= iterate_partial_orEnd
                     )
     updateSlackAndPV(BusList=BusList, YBus=YBus, Sbase=Sbase) # Sjekk Qi på PV bus
 
@@ -104,5 +145,6 @@ if __name__ == '__main__':
         Sbase=Sbase, 
         max_iterations=max_iterations, 
         tolerance=tolerance,
-        Q_lim=Q_lim
+        Q_lim=Q_lim,
+        iterate_partial_orEnd= iterate_partial_orEnd
         )
