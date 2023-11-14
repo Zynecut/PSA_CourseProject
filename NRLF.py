@@ -5,13 +5,13 @@ import time
 # Given data
 line_data = ReadCsvFile('./files/given_network/network_configuration_line_data.csv')
 # line_data = ReadCsvFile('./files/given_network/network_configuration_line_data_no_shunt.csv')
-# bus_data = ReadCsvFile('./files/given_network/network_configuration_bus_data_slack1.csv')
+bus_data = ReadCsvFile('./files/given_network/network_configuration_bus_data_slack1.csv')
 
 # bus_data = ReadCsvFile('./files/given_network/network_configuration_bus_data_slack2.csv')
 # bus_data = ReadCsvFile('./files/given_network/network_configuration_bus_data_slack1_no_reactive_load.csv')
 
 # Data from DCPF
-bus_data = ReadCsvFile('./files/given_network/network_configuration_bus_data_slack1_DCPF_Start.csv')
+# bus_data = ReadCsvFile('./files/given_network/network_configuration_bus_data_slack1_DCPF_Start.csv')
 
 Sbase = 100 # MVA
 Ubase = 230 # kV
