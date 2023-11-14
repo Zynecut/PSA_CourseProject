@@ -31,7 +31,7 @@ def DCPF(bus_data, line_data, Sbase):
     angle = {}
     for i, num in enumerate(P_spec, 0):
         key = f"Dirac_{extract_number(num)}"
-        angle[key] = (180/math.pi)*phaseangle[i][0]
+        angle[key] = phaseangle[i][0]
 
     for bus_id in angle:
         angle_num = extract_number(bus_id)
@@ -54,7 +54,7 @@ def DCPF(bus_data, line_data, Sbase):
                 continue
             dirac_i = BusList[i].voltage_angle
             dirac_j = BusList[j].voltage_angle
-            res[i][j] = Y_ij*(dirac_i - dirac_j)
+            res[i][j] = Y_ij*(dirac_i - dirac_j)*Sbase
 
 
     res_df = pd.DataFrame(res)

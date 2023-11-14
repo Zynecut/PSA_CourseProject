@@ -1209,8 +1209,6 @@ def print_dataframe_as_latex(dataframe):
     print("\n---------------- LaTeX Code -----------------")
     print(latex_code)
 
-
-
 def PowerLossAndFlow(line_data, BusList, Sbase, Ubase):
     sumP = 0
     sumQ = 0
