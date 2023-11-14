@@ -1,3 +1,15 @@
+# Test data
+# line_data = ReadCsvFile('./files/test_network/test_line_data.csv')
+# bus_data = ReadCsvFile('./files/test_network/test_bus_data.csv')
+
+# line_data = ReadCsvFile('./files/test_network/test_system_2_line.csv')
+# bus_data = ReadCsvFile('./files/test_network/test_system_2_bus.csv')
+
+# line_data = ReadCsvFile('./files/test_network/network_configuration_line_data_Fellestest.csv')
+# bus_data = ReadCsvFile('./files/test_network/network_configuration_bus_data_Fellestest.csv')
+
+
+
 # dict_var = {
 #     'V1' : 24,
 #     'V2' : 0,
