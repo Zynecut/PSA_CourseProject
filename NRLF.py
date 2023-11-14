@@ -18,6 +18,7 @@ Ubase = 230 # kV
 max_iterations = 300
 tolerance = 1e-6
 Q_lim = 0.65 # To check PQ state, lower limit to 0.6
+XR_ratio = None # None for standard system
 
 def iterateNRLF(BusList, YBus, P_spec, Q_spec, v_guess, dirac_guess, max_iterations, tolerance, Q_lim):
     """
@@ -48,7 +49,7 @@ def iterateNRLF(BusList, YBus, P_spec, Q_spec, v_guess, dirac_guess, max_iterati
             k += 1
     return f"The method converged after {k} iterations!"
 
-def NewtonRaphson(bus_data, line_data, Sbase, max_iterations, tolerance, Q_lim):
+def NewtonRaphson(bus_data, line_data, Sbase, max_iterations, tolerance, Q_lim, XR_ratio):
     """
         Values under must be defined in the funtion () before implementing in main()
         line_data, bus_data, Sbase, Ubase, max_iterations, tolerance
@@ -57,7 +58,7 @@ def NewtonRaphson(bus_data, line_data, Sbase, max_iterations, tolerance, Q_lim):
     """
     start_time = time.time()
     num_buses = len(bus_data)
-    YBus = BuildYbusMatrix(line_data, num_buses)
+    YBus = BuildYbusMatrix(line_data, num_buses, XR_ratio)
     bus_overview = setupBusType(bus_data)
     BusList = buildBusList(bus_data, Sbase, bus_overview)
     LineList = buildLineList(line_data)
@@ -103,5 +104,6 @@ if __name__ == '__main__':
               Sbase=Sbase, 
               max_iterations=max_iterations, 
               tolerance=tolerance, 
-              Q_lim=Q_lim
+              Q_lim=Q_lim,
+              XR_ratio= XR_ratio
               )
