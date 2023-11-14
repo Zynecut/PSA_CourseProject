@@ -12,7 +12,7 @@ def DCPF(bus_data, line_data, Sbase):
     start_time = time.time()
     num_buses = len(bus_data)
 
-    YBus = BuildYbusMatrix(line_data, num_buses)
+    YBus = BuildYbusMatrix(line_data, num_buses, None)
     bus_overview = setupBusType(bus_data)
     BusList = buildBusList(bus_data, Sbase, bus_overview)
 

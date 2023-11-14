@@ -111,7 +111,7 @@ def FDLF(bus_data, line_data, Sbase, max_iterations, tolerance, Q_lim, iterate_p
     """
     start_time = time.time()
     num_buses = len(bus_data)
-    YBus = BuildYbusMatrix(line_data, num_buses)
+    YBus = BuildYbusMatrix(line_data, num_buses, None)
     bus_overview = setupBusType(bus_data)
     BusList = buildBusList(bus_data, Sbase, bus_overview)
     P_spec, Q_spec = findKnowns(bus_data, Sbase)

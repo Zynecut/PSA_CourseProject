@@ -30,7 +30,7 @@ def ReadCsvFile(file):
         print(f"An error occurred: {e}")
         return None
 
-def setupLineAdmittanceList(line_dict, tap=None, phase=None):
+def setupLineAdmittanceList(line_dict, XR_ratio = None, tap=None, phase=None):
     """
         Setup Cutsem's algorithm, with 2x2 y-buses between each line.
 
@@ -70,6 +70,18 @@ def setupLineAdmittanceList(line_dict, tap=None, phase=None):
         x.append((y_pq + half_line_charging_admittance)/complex(phase_a**2, phase_b**2)) #y11
         x.append(-y_pq/complex(phase_a, -phase_b)) #y12
         x.append(-y_pq/complex(phase_a, phase_b)) #y21
+        x.append(y_pq + half_line_charging_admittance) #y22
+        return x
+    elif XR_ratio is not None:
+        x = []
+        impedance = complex(float(line_dict['R[pu]']), float(line_dict['R[pu]'])*XR_ratio)
+        half_line_charging_admittance = complex(0, float(line_dict['Half Line Charging Admittance']))
+        y_pq = complex(1 / impedance)
+        x.append(int(line_dict['From line']))
+        x.append(int(line_dict['To line']))
+        x.append(y_pq + half_line_charging_admittance) #y11
+        x.append(-y_pq) #y12
+        x.append(-y_pq) #y21
         x.append(y_pq + half_line_charging_admittance) #y22
         return x
     else:
@@ -146,7 +158,7 @@ def buildLineList(line_data):
         LineList.append(setupLineList(element))
     return LineList
 
-def BuildYbusMatrix(line_data, num_buses):
+def BuildYbusMatrix(line_data, num_buses, XR_ratio):
     """
         Construct YBus Matrix for an N-bus system
         Tap changing and phase shifting transformer data can be added if needed. 
@@ -157,7 +169,7 @@ def BuildYbusMatrix(line_data, num_buses):
     """
     line_adm = []
     for element in line_data:
-        line_adm.append(setupLineAdmittanceList(line_dict=element, tap=None, phase=None))
+        line_adm.append(setupLineAdmittanceList(line_dict=element, XR_ratio=XR_ratio, tap=None, phase=None))
 
     Y_bus = np.zeros((num_buses,num_buses), dtype=complex)
     for i in range(1, num_buses + 1):
