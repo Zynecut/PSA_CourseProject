@@ -1250,8 +1250,8 @@ def PowerLossAndFlow(line_data, BusList, Sbase, Ubase, XR_ratio=None):
         Qab = (Qab * Sbase)
         Qba = (Qba * Sbase)
 
-        sumP += (abs(Pab) - abs(Pba))
-        sumQ += (abs(Qab) - abs(Qba))
+        sumP += Pab + Pba
+        sumQ += Qab + Qba
 
         PLine_direction = {'From bus' : busa,
                             'To bus': busb,
@@ -1259,8 +1259,8 @@ def PowerLossAndFlow(line_data, BusList, Sbase, Ubase, XR_ratio=None):
                             'Q ij[MVAr]' : round(Qab, 3),
                             'P ji[MW]' : round(Pba,3),
                             'Q ji[MVAr]' : round(Qba,3),
-                            'P Loss[MW]' : round(abs(Pab) - abs(Pba),3),
-                            'Q Loss[MVAR]' : round(abs(Qab)- abs(Qba),3)
+                            'P Loss[MW]' : round(Pab + Pba,3),
+                            'Q Loss[MVAR]' : round(Qab + Qba,3)
                             }
         PLine_flow.append(PLine_direction)
 
