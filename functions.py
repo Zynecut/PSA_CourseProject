@@ -1193,7 +1193,7 @@ def makeDataFrame(BusList, Sbase, Ubase):
     df_NRLF = pd.DataFrame(data_to_add)
     return df_NRLF
 
-def PowerLossAndFlow(line_data, BusList, Sbase, Ubase):
+def PowerLossAndFlow(line_data, BusList, Sbase, Ubase, XR_ratio=None):
     """
         Function to calculate power loss on the lines as well as power and current flows on the lines.
     """
@@ -1221,7 +1221,10 @@ def PowerLossAndFlow(line_data, BusList, Sbase, Ubase):
         Yc = 1j* float(d['Half Line Charging Admittance'])
 
         Zr = float(d['R[pu]']) 
-        Zx = 1j*float(d['X[pu]']) 
+        if XR_ratio is not None:
+            Zx = 1j*float(d['R[pu]']) * XR_ratio 
+        else:
+            Zx = 1j*float(d['X[pu]'])
 
         Yl = 1 / (Zr + Zx) 
 
@@ -1229,7 +1232,10 @@ def PowerLossAndFlow(line_data, BusList, Sbase, Ubase):
         Iba = Yl * (Vb -Va) + Yc * Vb
         I_line = Yl * (Va-Vb)
         I_line_polar = cmath.polar(I_line)
-        Q_loss = I_line_polar[0]**2 * float(d['X[pu]']) * Sbase
+        if XR_ratio is not None:
+            Q_loss = I_line_polar[0]**2 * float(d['R[pu]']) * XR_ratio * Sbase
+        else:
+            Q_loss = I_line_polar[0]**2 * float(d['X[pu]']) * Sbase
 
         Sab = Va * np.conj(Iab)
         Sba = Vb * np.conj(Iba)

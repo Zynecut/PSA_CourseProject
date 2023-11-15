@@ -18,7 +18,7 @@ Ubase = 230 # kV
 max_iterations = 300
 tolerance = 1e-6
 Q_lim = 0.65 # To check PQ state, lower limit to 0.6
-XR_ratio = None # None for standard system
+XR_ratio = None # Default None for standard system
 
 def iterateNRLF(BusList, YBus, P_spec, Q_spec, v_guess, dirac_guess, max_iterations, tolerance, Q_lim):
     """
@@ -76,7 +76,7 @@ def NewtonRaphson(bus_data, line_data, Sbase, max_iterations, tolerance, Q_lim, 
                     )
 
     updateSlackAndPV(BusList=BusList, YBus=YBus, Sbase=Sbase) # Sjekk Qi på PV bus
-    sump, sumq, flow, S_I_injections= PowerLossAndFlow(line_data, BusList, Sbase, Ubase)
+    sump, sumq, flow, S_I_injections= PowerLossAndFlow(line_data, BusList, Sbase, Ubase, XR_ratio)
     df_NRLF = makeDataFrame(BusList, Sbase, Ubase)
 
     NRLF = df_NRLF.to_latex()
