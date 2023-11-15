@@ -17,8 +17,8 @@ Sbase = 100 # MVA
 Ubase = 230 # kV
 max_iterations = 300
 tolerance = 1e-6
-Q_lim = 0.65 # To check PQ state, lower limit to 0.6
-XR_ratio = None # Default None for standard system
+Q_lim = 1.2 # To check PQ state, lower limit to 0.6
+XR_ratio = 2 # Default None for standard system
 
 def iterateNRLF(BusList, YBus, P_spec, Q_spec, v_guess, dirac_guess, max_iterations, tolerance, Q_lim):
     """
