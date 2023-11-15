@@ -67,7 +67,7 @@ def setupLineAdmittanceList(line_dict, XR_ratio = None, tap=None, phase=None):
         y_pq = complex(1 / impedance)
         x.append(int(line_dict['From line']))
         x.append(int(line_dict['To line']))
-        x.append((y_pq + half_line_charging_admittance)/complex(phase_a**2, phase_b**2)) #y11
+        x.append((y_pq + half_line_charging_admittance)/(phase_a**2 + phase_b**2)) #y11
         x.append(-y_pq/complex(phase_a, -phase_b)) #y12
         x.append(-y_pq/complex(phase_a, phase_b)) #y21
         x.append(y_pq + half_line_charging_admittance) #y22
@@ -1155,6 +1155,9 @@ def updateVoltageFDLFandBusList(BusList, delta_v, v_guess=None):
                 continue
 
 def YBusDC(BusList, YBus):
+    """
+        Function that build the YBus needed in the DCPF method.
+    """
     YBus_DC = None
     for i in range(len(BusList)):
         if BusList[i].BusType == 'Slack':
@@ -1190,38 +1193,10 @@ def makeDataFrame(BusList, Sbase, Ubase):
     df_NRLF = pd.DataFrame(data_to_add)
     return df_NRLF
 
-def print_dataframe_as_latex(dataframe):
-    """
-        Generates code to display a dataframe in LaTeX using the tabularx package.
-    """
-    
-    # Generate LaTeX code
-    column_format_tabular = "c" * len(dataframe.columns)  # Create a "c" for each column using the tabular package
-    latex_code = dataframe.to_latex(index=False,
-                                    header=False,
-                                    column_format=column_format_tabular,
-                                    position="H",
-                                    label="tab:change-me",
-                                    caption="\color{red}Change me...")
-    
-    # Modify the LaTeX package
-    latex_code = latex_code.replace("tabular", "tabularx") # Uses the tabularx package instead of the tabular one
-    latex_code = latex_code.replace("\\caption", "\\centering\n\caption") # Adds the centering parameter to center the table
-
-    # Modify the column format
-    column_format_tabularx = "\n>{\\centering\\footnotesize\\arraybackslash}c" # First column uses the "c" parameter
-    for i in range(1, len(dataframe.columns)):
-        column_format_tabularx += "\n>{\\centering\\footnotesize\\arraybackslash}X" # All the other columns uses the "X" parameter
-    latex_code = latex_code.replace(column_format_tabular, "0.9\\textwidth}{" + column_format_tabularx) # Replaces the column format
-
-    # Use bold text for the header
-    header_row = " & ".join(["\\textbf{" + col + "}" for col in dataframe.columns])
-    latex_code = latex_code.replace("\\toprule", "\\toprule\n" + header_row + " \\\\")
-
-    print("\n---------------- LaTeX Code -----------------")
-    print(latex_code)
-
 def PowerLossAndFlow(line_data, BusList, Sbase, Ubase, XR_ratio=None):
+    """
+        Function to calculate power loss on the lines as well as power and current flows on the lines.
+    """
     sumP = 0
     sumQ = 0
     PLine_flow = []

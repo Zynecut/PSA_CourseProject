@@ -17,7 +17,9 @@ iterate_partial_orEnd = True # True for calculation partially through iteration 
 XR_ratio = 2
 
 def iterateFDLF(BusList, YBus, P_spec, Q_spec, v_guess, dirac_guess, max_iterations, tolerance, B_prime, B_double_prime, Q_lim, iterate_partial_orEnd):
-
+    """
+        Function that iterates the FDLF method. 
+    """
     if iterate_partial_orEnd:
         deltaP = calcP(BusList, P_spec, YBus)
         deltaPn_Vn = calcDeltaPn_Vn(BusList, deltaP)
