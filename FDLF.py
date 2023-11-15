@@ -12,8 +12,9 @@ Ubase = 230 # kV
 num_buses = len(bus_data)
 max_iterations = 100
 tolerance = 1e-6
-Q_lim = 0.65
+Q_lim = 1.2
 iterate_partial_orEnd = True # True for calculation partially through iteration or False for calculation at end of iteration
+XR_ratio = 2
 
 def iterateFDLF(BusList, YBus, P_spec, Q_spec, v_guess, dirac_guess, max_iterations, tolerance, B_prime, B_double_prime, Q_lim, iterate_partial_orEnd):
 
@@ -99,7 +100,7 @@ def iterateFDLF(BusList, YBus, P_spec, Q_spec, v_guess, dirac_guess, max_iterati
                 k += 1
         return f"The method converged after {k} iterations, with updated values at end of each iteration!"
 
-def FDLF(bus_data, line_data, Sbase, max_iterations, tolerance, Q_lim, iterate_partial_orEnd):
+def FDLF(bus_data, line_data, Sbase, max_iterations, tolerance, Q_lim, iterate_partial_orEnd, XR_ratio):
     """
         R on line is neglected, thus a new YBus must be calculated.
         Stratety:
@@ -111,7 +112,7 @@ def FDLF(bus_data, line_data, Sbase, max_iterations, tolerance, Q_lim, iterate_p
     """
     start_time = time.time()
     num_buses = len(bus_data)
-    YBus = BuildYbusMatrix(line_data, num_buses, None)
+    YBus = BuildYbusMatrix(line_data, num_buses, XR_ratio)
     bus_overview = setupBusType(bus_data)
     BusList = buildBusList(bus_data, Sbase, bus_overview)
     P_spec, Q_spec = findKnowns(bus_data, Sbase)
@@ -134,7 +135,7 @@ def FDLF(bus_data, line_data, Sbase, max_iterations, tolerance, Q_lim, iterate_p
                     )
     updateSlackAndPV(BusList=BusList, YBus=YBus, Sbase=Sbase) # Sjekk Qi på PV bus
 
-    sump, sumq, flow, S_I_injections= PowerLossAndFlow(line_data, BusList, Sbase, Ubase)
+    sump, sumq, flow, S_I_injections= PowerLossAndFlow(line_data, BusList, Sbase, Ubase, XR_ratio)
     df_FDLF = makeDataFrame(BusList, Sbase, Ubase)
     FDLF = df_FDLF.to_latex()
     print(FDLF)
@@ -158,5 +159,6 @@ if __name__ == '__main__':
         max_iterations=max_iterations, 
         tolerance=tolerance,
         Q_lim=Q_lim,
-        iterate_partial_orEnd= iterate_partial_orEnd
+        iterate_partial_orEnd= iterate_partial_orEnd,
+        XR_ratio=XR_ratio
         )
