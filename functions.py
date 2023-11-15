@@ -1194,7 +1194,23 @@ def makeDataFrame(BusList, Sbase, Ubase):
         }
         data_to_add.append(dict_NRLF)
     df_NRLF = pd.DataFrame(data_to_add)
-    return df_NRLF
+
+    data_to_add_pu = []
+    for i in range(len(BusList)):
+        dict_NRLF = {
+            'Bus': BusList[i].bus_id,
+            'Type': BusList[i].BusType,
+            'Voltage [pu]': round(BusList[i].voltage_magnitude, 3),
+            'Angle [deg]': round((180/math.pi)*BusList[i].voltage_angle, 3),
+            'P [pu]': round(BusList[i].P_specified, 3),
+            'Q [pu]': round(BusList[i].Q_specified, 3)
+        }
+        data_to_add_pu.append(dict_NRLF)
+    df_NRLF_pu = pd.DataFrame(data_to_add_pu)
+
+    return df_NRLF, df_NRLF_pu
+
+
 
 def PowerLossAndFlow(line_data, BusList, Sbase, Ubase, XR_ratio=None):
     """
@@ -1202,6 +1218,7 @@ def PowerLossAndFlow(line_data, BusList, Sbase, Ubase, XR_ratio=None):
     """
     sumP = 0
     sumQ = 0
+    PLine_flow_pu = []
     PLine_flow = []
     S_I_lsit = []
     Ibase = (Sbase*1e6)/(Ubase*1e3)
@@ -1248,6 +1265,17 @@ def PowerLossAndFlow(line_data, BusList, Sbase, Ubase, XR_ratio=None):
         Qab = Sab.imag
         Qba = Sba.imag
 
+        PLine_direction_pu = {'From bus' : busa,
+                            'To bus': busb,
+                            'P ij[MW]' : round(Pab,3),
+                            'Q ij[MVAr]' : round(Qab, 3),
+                            'P ji[MW]' : round(Pba,3),
+                            'Q ji[MVAr]' : round(Qba,3),
+                            'P Loss[MW]' : round(Pab + Pba,3),
+                            'Q Loss[MVAR]' : round(Qab + Qba,3)
+                            }
+        PLine_flow_pu.append(PLine_direction_pu)
+
         Pab = (Pab * Sbase)
         Pba = (Pba * Sbase)
         Qab = (Qab * Sbase)
@@ -1281,6 +1309,7 @@ def PowerLossAndFlow(line_data, BusList, Sbase, Ubase, XR_ratio=None):
 
         S_I_lsit.append(S_I)
 
+    dfPowerflow_pu = pd.DataFrame(PLine_flow_pu)
     dfPowerflow = pd.DataFrame(PLine_flow)
     df_S_I = pd.DataFrame(S_I_lsit)
 
@@ -1288,5 +1317,5 @@ def PowerLossAndFlow(line_data, BusList, Sbase, Ubase, XR_ratio=None):
     sumQ = round(sumQ,3)
 
 
-    return sumP, sumQ, dfPowerflow, df_S_I
+    return sumP, sumQ, dfPowerflow, df_S_I, dfPowerflow_pu
 

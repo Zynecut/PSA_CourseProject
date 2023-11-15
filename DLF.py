@@ -67,13 +67,19 @@ def DLF(bus_data, line_data, Sbase, max_iterations, tolerance, Q_lim):
     
     updateSlackAndPV(BusList=BusList, YBus=YBus, Sbase=Sbase) # Sjekk Qi på PV bus
 
-    sump, sumq, flow, S_I_injections= PowerLossAndFlow(line_data, BusList, Sbase, Ubase)
-    df_DLF = makeDataFrame(BusList, Sbase, Ubase)
+    sump, sumq, flow, S_I_injections, flow_pu= PowerLossAndFlow(line_data, BusList, Sbase, Ubase)
+    df_DLF, df_DLF_pu = makeDataFrame(BusList, Sbase, Ubase)
     DLF = df_DLF.to_latex()
     print(DLF)
     print("\n")
+    DLF_pu = df_DLF_pu.to_latex()
+    print(DLF_pu)
+    print("\n") 
     flow2 = flow.to_latex()
     print(flow2)
+    print("\n")
+    flow_pu2 = flow_pu.to_latex()
+    print(flow_pu2)
     print("\n")
     S_I = S_I_injections.to_latex()
     print(S_I)
