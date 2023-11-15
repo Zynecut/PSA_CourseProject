@@ -4,17 +4,17 @@ import time
 # Given data
 line_data = ReadCsvFile('./files/given_network/network_configuration_line_data.csv')
 # line_data = ReadCsvFile('./files/given_network/network_configuration_line_data_no_shunt.csv')
-bus_data = ReadCsvFile('./files/given_network/network_configuration_bus_data_slack1.csv')
+# bus_data = ReadCsvFile('./files/given_network/network_configuration_bus_data_slack1.csv')
 # bus_data = ReadCsvFile('./files/given_network/network_configuration_bus_data_slack2.csv')
-# bus_data = ReadCsvFile('./files/given_network/network_configuration_bus_data_slack1_no_reactive_load.csv')
+bus_data = ReadCsvFile('./files/given_network/network_configuration_bus_data_slack1_no_reactive_load.csv')
 Sbase = 100 # MVA
 Ubase = 230 # kV
 num_buses = len(bus_data)
 max_iterations = 100
 tolerance = 1e-6
-Q_lim = 1.2
+Q_lim = 1.5
 iterate_partial_orEnd = True # True for calculation partially through iteration or False for calculation at end of iteration
-XR_ratio = 2
+XR_ratio = None
 
 def iterateFDLF(BusList, YBus, P_spec, Q_spec, v_guess, dirac_guess, max_iterations, tolerance, B_prime, B_double_prime, Q_lim, iterate_partial_orEnd):
     """

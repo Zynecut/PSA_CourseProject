@@ -3,7 +3,6 @@ import re
 import csv
 import numpy as np
 import pandas as pd
-
 from classes import *
 
 def ReadCsvFile(file):
@@ -1142,9 +1141,13 @@ def updateVoltageFDLFandBusList(BusList, delta_v, v_guess=None):
     """
     count_v = len(v_guess)
     v_start = extract_number(next(iter(v_guess)))
-    for i in range(v_start, count_v + v_start):
+    v_end = v_start + 1
+    for i in range(v_start, count_v + v_end):
         v_key = f'v_{i}'
-        v_guess[v_key] += delta_v[i-v_start][0]
+        if v_key in v_guess:
+            v_guess[v_key] += delta_v[i-v_start][0]
+        else:
+            v_start += 1
 
     for bus_id in v_guess:
         v_num = extract_number(bus_id)
@@ -1277,10 +1280,7 @@ def PowerLossAndFlow(line_data, BusList, Sbase, Ubase, XR_ratio=None):
         }
 
         S_I_lsit.append(S_I)
-                
 
-        
-            
     dfPowerflow = pd.DataFrame(PLine_flow)
     df_S_I = pd.DataFrame(S_I_lsit)
 
