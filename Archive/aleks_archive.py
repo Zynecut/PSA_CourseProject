@@ -589,3 +589,34 @@
 #                         continue
 #                 J4_arr[i-Q_start][i-v_start] = QiVi
 #     return J4_arr
+
+# def print_dataframe_as_latex(dataframe):
+#     """
+#         Generates code to display a dataframe in LaTeX using the tabularx package.
+#     """
+    
+#     # Generate LaTeX code
+#     column_format_tabular = "c" * len(dataframe.columns)  # Create a "c" for each column using the tabular package
+#     latex_code = dataframe.to_latex(index=False,
+#                                     header=False,
+#                                     column_format=column_format_tabular,
+#                                     position="H",
+#                                     label="tab:change-me",
+#                                     caption="\color{red}Change me...")
+    
+#     # Modify the LaTeX package
+#     latex_code = latex_code.replace("tabular", "tabularx") # Uses the tabularx package instead of the tabular one
+#     latex_code = latex_code.replace("\\caption", "\\centering\n\caption") # Adds the centering parameter to center the table
+
+#     # Modify the column format
+#     column_format_tabularx = "\n>{\\centering\\footnotesize\\arraybackslash}c" # First column uses the "c" parameter
+#     for i in range(1, len(dataframe.columns)):
+#         column_format_tabularx += "\n>{\\centering\\footnotesize\\arraybackslash}X" # All the other columns uses the "X" parameter
+#     latex_code = latex_code.replace(column_format_tabular, "0.9\\textwidth}{" + column_format_tabularx) # Replaces the column format
+
+#     # Use bold text for the header
+#     header_row = " & ".join(["\\textbf{" + col + "}" for col in dataframe.columns])
+#     latex_code = latex_code.replace("\\toprule", "\\toprule\n" + header_row + " \\\\")
+
+#     print("\n---------------- LaTeX Code -----------------")
+#     print(latex_code)
