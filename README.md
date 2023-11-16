@@ -7,8 +7,10 @@ To get a local copy of this project up and running, follow these steps:
 ### Prerequisites
 Make sure you have Git installed on your machine. If not, you can download and install it from [Git Downloads](https://git-scm.com/downloads).
 
-### Cloning the Repository
+### Open ziped Repository
+Place the repository on wanted directory and open the folder from preferred IDE.
 
+### Cloning the Repository
 Open your terminal or command prompt and navigate to the directory where you want to store the project.
 
 ```bash
@@ -25,7 +27,7 @@ git clone https://github.com/Zynecut/PSA_CourseProject.git
 This will clone the repository into your folder. You should now have a local copy of the project on your machine.
 
 ### Create a virtual environment
-A virtual environment is a useful place to download any libraries, so that they're contained within the given project. This must be in the same diectory/folder as the project:
+A virtual environment is a useful place to download any libraries, so that they're contained within the given project. For this project, it is recommended to use a venv for the requirements file that store the needed libraries. This must be in the same diectory/folder as the project:
 ```bash
 # Create the virtual environment in the terminal:
 python -m venv venv

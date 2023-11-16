@@ -42,7 +42,7 @@ def iterateDLF(BusList, YBus, P_spec, Q_spec, v_guess, dirac_guess, max_iteratio
     return delta_u, delta_x, k
 
 
-def DLF(bus_data, line_data, Sbase, max_iterations, tolerance, Q_lim):
+def DLF(bus_data, line_data, Sbase, Ubase, max_iterations, tolerance, Q_lim):
     """
         delta_u is known values - ΔP, ΔQ
         delta_x is unknown values - Δδ, Δ|v|
@@ -94,6 +94,7 @@ if __name__ == '__main__':
     DLF(bus_data=bus_data, 
         line_data=line_data, 
         Sbase=Sbase, 
+        Ubase=Ubase,
         max_iterations=max_iterations, 
         tolerance=tolerance,
         Q_lim=Q_lim
