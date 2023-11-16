@@ -1210,11 +1210,16 @@ def makeDataFrame(BusList, Sbase, Ubase):
 
     return df_NRLF, df_NRLF_pu
 
-
-
 def PowerLossAndFlow(line_data, BusList, Sbase, Ubase, XR_ratio=None):
     """
         Function to calculate power loss on the lines as well as power and current flows on the lines.
+
+        Parameters:
+        - line_data (list(dict)): list one line data
+        - BusList (list(object)): List of bus objects
+        - Sbase (int): Base value for power on system
+        - Ubase (int): Base value for voltage on system
+        - XR_ratio (float)(None): Value for XR ratio
     """
     sumP = 0
     sumQ = 0

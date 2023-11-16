@@ -102,7 +102,7 @@ def iterateFDLF(BusList, YBus, P_spec, Q_spec, v_guess, dirac_guess, max_iterati
                 k += 1
         return f"The method converged after {k} iterations, with updated values at end of each iteration!"
 
-def FDLF(bus_data, line_data, Sbase, max_iterations, tolerance, Q_lim, iterate_partial_orEnd, XR_ratio):
+def FDLF(bus_data, line_data, Sbase, Ubase, max_iterations, tolerance, Q_lim, iterate_partial_orEnd, XR_ratio):
     """
         R on line is neglected, thus a new YBus must be calculated.
         Stratety:
@@ -163,7 +163,8 @@ def FDLF(bus_data, line_data, Sbase, max_iterations, tolerance, Q_lim, iterate_p
 if __name__ == '__main__':
     FDLF(bus_data=bus_data, 
         line_data=line_data, 
-        Sbase=Sbase, 
+        Sbase=Sbase,
+        Ubase=Ubase, 
         max_iterations=max_iterations, 
         tolerance=tolerance,
         Q_lim=Q_lim,

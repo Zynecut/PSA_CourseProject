@@ -49,7 +49,7 @@ def iterateNRLF(BusList, YBus, P_spec, Q_spec, v_guess, dirac_guess, max_iterati
             k += 1
     return f"The method converged after {k} iterations!"
 
-def NewtonRaphson(bus_data, line_data, Sbase, max_iterations, tolerance, Q_lim, XR_ratio):
+def NewtonRaphson(bus_data, line_data, Sbase, Ubase, max_iterations, tolerance, Q_lim, XR_ratio):
     """
         Values under must be defined in the funtion () before implementing in main()
         line_data, bus_data, Sbase, Ubase, max_iterations, tolerance
@@ -108,6 +108,7 @@ if __name__ == '__main__':
     NewtonRaphson(bus_data=bus_data, 
               line_data=line_data, 
               Sbase=Sbase, 
+              Ubase=Ubase, 
               max_iterations=max_iterations, 
               tolerance=tolerance, 
               Q_lim=Q_lim,
